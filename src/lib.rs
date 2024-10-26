@@ -1,27 +1,20 @@
+use cgmath::Vector3;
 
 
-#[derive(Copy, Clone, Default)]
-pub struct GenericVec3<T> {
-    e: [T; 3],
+pub struct Ray<S> {
+    orig: Vector3<S>,
+    dir: Vector3<S>
 }
- 
-impl<T: Clone + Copy> GenericVec3<T> {
-    pub fn new(x: T, y: T, z: T) -> GenericVec3<T> {
-        GenericVec3 { e: [x, y, z] }
+
+impl<S: cgmath::BaseNum> Ray<S> {
+    pub fn new(orig: Vector3<S>, dir: Vector3<S>) -> Self {
+        Self {
+            orig,
+            dir
+        }
     }
- 
-    pub fn x(&self) -> T {
-        self.e[0]
-    }
- 
-    pub fn y(&self) -> T {
-        self.e[1]
-    }
- 
-    pub fn z(&self) -> T {
-        self.e[2]
+
+    pub fn at(&self, lambda: S) -> Vector3<S> {
+        self.orig + self.dir*lambda
     }
 }
- 
-
-pub type Vec3 = GenericVec3<f64>;

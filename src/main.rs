@@ -1,5 +1,5 @@
 use indicatif::ProgressBar;
-use ray_tracing::Vec3;
+use cgmath::Vector3;
 
 fn main() {
     let image_width = 256;
@@ -9,10 +9,10 @@ fn main() {
 
     for j in 0..image_height {
         for i in 0..image_width {
-            let pixel_color = Vec3::new(
+            let pixel_color = Vector3::new(
                 i as f64 / (image_width-1) as f64,
                 j as f64 / (image_width-1) as f64,
-                0.0);
+                0.25);
 
             write_color(pixel_color);
             pb.inc(1);
@@ -21,11 +21,12 @@ fn main() {
     pb.finish();
 }
 
-type Color = Vec3;
+type Color = Vector3<f64>;
 fn write_color(pixel_color: Color) {
     let pixel_max = 256.0 - 0.001;
-    let ir = (pixel_max * pixel_color.x()) as u8;
-    let ig = (pixel_max * pixel_color.y()) as u8;
-    let ib = (pixel_max * pixel_color.z()) as u8;
+    let ir = (pixel_max * pixel_color.x) as u8;
+    let ig = (pixel_max * pixel_color.y) as u8;
+    let ib = (pixel_max * pixel_color.z) as u8;
     println!("{} {} {}", ir, ig, ib);
+    
 }
