@@ -1,7 +1,10 @@
+use indicatif::ProgressBar;
+
 fn main() {
     let image_width = 256;
     let image_height = 256;
     println!("P3\n{} {}\n255", image_width, image_height);
+    let pb = ProgressBar::new(image_height * image_width);
 
     for j in 0..image_height {
         for i in 0..image_width {
@@ -13,7 +16,9 @@ fn main() {
             let ig = (255.999 * g) as u8;
             let ib = (255.999 * b) as u8;
 
-            println!("{} {} {}", ir, ig, ib)
+            println!("{} {} {}", ir, ig, ib);
+            pb.inc(1);
         }
     }
+    pb.finish();
 }
