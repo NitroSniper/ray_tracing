@@ -55,7 +55,20 @@ fn write_color(pixel_color: Color) {
 }
 
 fn ray_color(ray: Ray<f64>) -> Color {
+    if hit_sphere(&Vector3::new(0.0, 0.0, -1.0), 0.5, &ray) {
+        return Vector3::new(1.0, 0.0, 0.0)
+    }
     let unit_dir = ray.dir.normalize();
     let a = 0.5*(unit_dir.y + 1.0);
     (1.0-a)*Vector3::new(1.0, 1.0, 1.0)+ a*Vector3::new(0.5, 0.7, 1.0)
+}
+
+fn hit_sphere(center: &Vector3<f64>, rad: f64, ray: &Ray<f64>) -> bool {
+    // https://raytracing.github.io/books/RayTracingInOneWeekend.html#addingasphere/ray-sphereintersection
+    let oc = center - ray.orig;
+    let a = ray.dir.dot(ray.dir);
+    let b = -2.0 * ray.dir.dot(oc);
+    let c = oc.dot(oc) - rad * rad;
+    let discriminant = b*b - 4.0*a*c;
+    discriminant >= 0.0
 }
