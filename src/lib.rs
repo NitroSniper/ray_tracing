@@ -2,11 +2,11 @@ use cgmath::Vector3;
 
 
 pub struct Ray<S> {
-    orig: Vector3<S>,
-    dir: Vector3<S>
+    pub orig: Vector3<S>,
+    pub dir: Vector3<S>
 }
 
-impl<S: cgmath::BaseNum> Ray<S> {
+impl<S: cgmath::BaseFloat> Ray<S> {
     pub fn new(orig: Vector3<S>, dir: Vector3<S>) -> Self {
         Self {
             orig,
