@@ -1,5 +1,5 @@
 use indicatif::ProgressBar;
-use cgmath::{point3, InnerSpace, Vector3, Zero};
+use cgmath::{Array, InnerSpace, Vector3, Zero};
 use ray_tracing::Ray;
 
 fn main() {
@@ -69,8 +69,8 @@ fn hit_sphere(center: &Vector3<f64>, rad: f64, ray: &Ray<f64>) -> Option<f64> {
     // https://raytracing.github.io/books/RayTracingInOneWeekend.html#addingasphere/ray-sphereintersection
     let oc = center - ray.orig;
     let a = ray.dir.dot(ray.dir);
-    let b = -2.0 * ray.dir.dot(oc);
+    let h = ray.dir.dot(oc);
     let c = oc.dot(oc) - rad * rad;
-    let discriminant = b*b - 4.0*a*c;
-    (discriminant >= 0.0).then(|| (-b - discriminant.sqrt()) / (2.0*a))
+    let discriminant = h*h - a*c;
+    (discriminant >= 0.0).then(|| (h - discriminant.sqrt()) / a)
 }
