@@ -5,4 +5,13 @@ edition = "2021"
 
 [dependencies]
 cgmath = "0.18.0"
+env_logger = "0.10"
+error-iter = "0.4"
 indicatif = "0.17.8"
+log = "0.4"
+winit = "0.29"
+winit_input_helper = "0.15"
+
+[dependencies.pixels]
+git = "https://github.com/parasyte/pixels.git"
+rev = "d4df286d3f886e9b12fb36f731555c3be66c8ebd"

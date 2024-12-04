@@ -1,9 +1,67 @@
-use cgmath::{Array, InnerSpace, Vector3, Zero};
+use cgmath::{num_traits::FromPrimitive, InnerSpace, Vector3, Zero};
 use indicatif::ProgressBar;
+use pixels::{Pixels, SurfaceTexture};
 use ray_tracing::Ray;
+use winit::{
+    dpi::LogicalSize,
+    event::WindowEvent,
+    event_loop::{ControlFlow, EventLoop},
+    window::WindowBuilder,
+};
+use winit_input_helper::WinitInputHelper;
 
+static ASPECT_RATIO: f64 = 16.0 / 9.0;
+static IMAGE_WIDTH: u32 = 256;
+static IMAGE_HEIGHT: u32 = {
+    let height = (IMAGE_WIDTH as f64 / ASPECT_RATIO) as u32;
+    if height == 0 {
+        1
+    } else {
+        height
+    }
+};
 fn main() {
+    // calculate image height
+
     // image
+    let event_loop = EventLoop::new().unwrap();
+    let input = WinitInputHelper::new();
+    event_loop.set_control_flow(ControlFlow::Poll);
+
+    let window = {
+        let size = LogicalSize::new(IMAGE_WIDTH, IMAGE_HEIGHT);
+        WindowBuilder::new()
+            .with_title("Hell")
+            .with_inner_size(size)
+            .with_min_inner_size(size)
+            .build(&event_loop)
+            .unwrap()
+    };
+    let mut pixels = {
+        let window_size = window.inner_size();
+        dbg!(window_size);
+        let surf = SurfaceTexture::new(window_size.width, window_size.height, &window);
+        Pixels::new(IMAGE_WIDTH, IMAGE_HEIGHT, surf).unwrap()
+    };
+
+    let _ = event_loop.run(|event, elwt| match event {
+        winit::event::Event::WindowEvent {
+            event: WindowEvent::CloseRequested,
+            ..
+        } => elwt.exit(),
+        winit::event::Event::WindowEvent {
+            event: WindowEvent::RedrawRequested,
+            ..
+        } => {
+            draw_image(pixels.frame_mut());
+            pixels.render().unwrap();
+            window.request_redraw();
+        },
+        _ => (),
+    });
+}
+
+fn draw_image(frame: &mut [u8]) {
     let aspect_ratio = 16.0 / 9.0;
     let image_width = 256;
 
@@ -32,15 +90,17 @@ fn main() {
     // println!("P3\n{} {}\n255", image_width, image_height);
     let pb = ProgressBar::new(image_height * image_width);
 
-    for j in 0..image_height {
-        for i in 0..image_width {
-            let pixel_center = pixel00_loc + pixel_delta_u * i as f64 + pixel_delta_v * j as f64;
-            let ray = Ray::new(pixel_center, pixel_center - camera_center);
-            write_color(ray_color(ray));
-            pb.inc(1);
-        }
+    for (i, pixels) in frame.chunks_exact_mut(4).enumerate() {
+        let x = i % IMAGE_WIDTH as usize;
+        let y = i / IMAGE_WIDTH as usize;
+        let pixel_center = pixel00_loc + pixel_delta_u * x as f64 + pixel_delta_v * y as f64;
+        let ray = Ray::new(pixel_center, pixel_center - camera_center);
+        let color = ray_color(ray);
+        let u8_color = color.map(|x| (x * 255.0) as u8);
+        pixels.copy_from_slice(
+            &[u8_color.x, u8_color.y, u8_color.z, 0xff]
+        );
     }
-    pb.finish();
 }
 
 type Color = Vector3<f64>;

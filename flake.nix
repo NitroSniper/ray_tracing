@@ -39,12 +39,19 @@
         );
 
         # Common arguments can be set here to avoid repeating them later
-        commonArgs = {
+        commonArgs = rec {
           src = craneLib.cleanCargoSource ./.;
           strictDeps = true;
 
+          buildInputs = with pkgs; [
+            libxkbcommon
+            libGL
+            wayland
+          ];
           # Additional environment variables can be set directly
           # MY_CUSTOM_VAR = "some value";
+          LD_LIBRARY_PATH = "${inputs.lib.makeLibraryPath buildInputs}";
+          RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
         };
 
         # Build *just* the cargo dependencies, so we can reuse
