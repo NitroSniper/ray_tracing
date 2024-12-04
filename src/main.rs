@@ -1,4 +1,4 @@
-use cgmath::{num_traits::FromPrimitive, InnerSpace, Vector3, Zero};
+use cgmath::{num_traits::{Float, FromPrimitive}, ElementWise, InnerSpace, Vector3, Zero};
 use indicatif::ProgressBar;
 use pixels::{Pixels, SurfaceTexture};
 use ray_tracing::Ray;
@@ -87,8 +87,6 @@ fn draw_image(frame: &mut [u8]) {
     let top_left_pixel = camera_center - Vector3::unit_z() * focal_length - vp_u / 2.0 - vp_v / 2.0;
     let pixel00_loc = top_left_pixel + 0.5 * (pixel_delta_u + pixel_delta_v);
 
-    // println!("P3\n{} {}\n255", image_width, image_height);
-    let pb = ProgressBar::new(image_height * image_width);
 
     for (i, pixels) in frame.chunks_exact_mut(4).enumerate() {
         let x = i % IMAGE_WIDTH as usize;
@@ -96,7 +94,7 @@ fn draw_image(frame: &mut [u8]) {
         let pixel_center = pixel00_loc + pixel_delta_u * x as f64 + pixel_delta_v * y as f64;
         let ray = Ray::new(pixel_center, pixel_center - camera_center);
         let color = ray_color(ray);
-        let u8_color = color.map(|x| (x * 255.0) as u8);
+        let u8_color = color.map(|x| (x * 255.0).round() as u8);
         pixels.copy_from_slice(
             &[u8_color.x, u8_color.y, u8_color.z, 0xff]
         );
@@ -104,11 +102,6 @@ fn draw_image(frame: &mut [u8]) {
 }
 
 type Color = Vector3<f64>;
-fn write_color(pixel_color: Color) {
-    let pixel_max = 256.0 - 0.001;
-    let i = pixel_max * pixel_color;
-}
-
 fn ray_color(ray: Ray<f64>) -> Color {
     let center = Vector3::new(0.0, 0.0, -1.0);
     if let Some(t) = hit_sphere(&center, 0.5, &ray) {
@@ -128,4 +121,71 @@ fn hit_sphere(center: &Vector3<f64>, rad: f64, ray: &Ray<f64>) -> Option<f64> {
     let c = oc.dot(oc) - rad * rad;
     let discriminant = h * h - a * c;
     (discriminant >= 0.0).then(|| (h - discriminant.sqrt()) / a)
+
+}
+
+struct HitRecord {
+    point: Vector3<f64>,
+    normal: Vector3<f64>,
+    t: f64,
+    front_face: bool,
+}
+
+impl HitRecord {
+    fn set_face_normal(&mut self, ray: &Ray<f64>, out_norm: &Vector3<f64>) {
+        self.front_face = ray.dir.dot(*out_norm) < 0.0;
+        self.normal = if self.front_face {*out_norm} else {-1.0 * out_norm};
+    }
+}
+
+impl Default for HitRecord {
+    fn default() -> Self {
+        Self { 
+            point: Vector3::new(0.0,0.0,0.0),
+            normal: Vector3::new(0.0,0.0,0.0),
+            t: 0.0,
+            front_face: false,
+        }
+    }
+}
+
+
+trait Hitter {
+    fn hit(&self, ray: &Ray<f64>, t_min: f64, t_max: f64) -> Option<HitRecord>;
+}
+
+struct Sphere {
+    center: Vector3<f64>,
+    radius: f64,
+}
+
+impl Hitter for Sphere {
+    fn hit(&self, ray: &Ray<f64>, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        let oc = self.center - ray.orig;
+        let a = ray.dir.dot(ray.dir);
+        let h = ray.dir.dot(oc);
+        let c = oc.dot(oc) - self.radius * self.radius;
+        let discriminant = h*h - a*c;
+        if discriminant < 0.0 {
+            return None
+        }
+        let sqrtd = discriminant.sqrt();
+        let root = {
+            let root_a = h-sqrtd / a;
+            let root_b = h+sqrtd / a;
+            if (t_min..t_max).contains(&root_a){
+                Some(root_a)
+            } else if (t_min..t_max).contains(&root_b) {
+                Some(root_b)
+            } else {
+                None
+            }
+        }?;
+        let mut record = HitRecord::default();
+        record.t = root;
+        record.point = ray.at(record.t);
+        let out_normal = (record.point - self.center) / self.radius;
+        record.set_face_normal(ray, &out_normal);
+        Some(record) 
+    }
 }
