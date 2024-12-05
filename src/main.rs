@@ -1,5 +1,4 @@
-use cgmath::{num_traits::{Float, FromPrimitive}, ElementWise, InnerSpace, Vector3, Zero};
-use indicatif::ProgressBar;
+use cgmath::{num_traits::{Float, FromPrimitive}, Array, ElementWise, InnerSpace, Vector3, Zero};
 use pixels::{Pixels, SurfaceTexture};
 use ray_tracing::Ray;
 use winit::{
@@ -69,6 +68,11 @@ fn draw_image(frame: &mut [u8]) {
     let image_height = (image_width as f64 / aspect_ratio) as u64;
     let image_height = image_height.is_zero().then(|| 1).unwrap_or(image_height);
 
+    // World
+    let sphere_1 = Sphere {center: Vector3::new(0.0, 0.0, -1.0), radius: 0.5};
+    let sphere_2 = Sphere {center: Vector3::new(0.0, -100.5, -1.0), radius: 100.0};
+    let world = vec![sphere_1, sphere_2];
+
     // Camera
     let vp_height = 2.0;
     let vp_width = vp_height * (image_width as f64 / image_height as f64);
@@ -92,8 +96,8 @@ fn draw_image(frame: &mut [u8]) {
         let x = i % IMAGE_WIDTH as usize;
         let y = i / IMAGE_WIDTH as usize;
         let pixel_center = pixel00_loc + pixel_delta_u * x as f64 + pixel_delta_v * y as f64;
-        let ray = Ray::new(pixel_center, pixel_center - camera_center);
-        let color = ray_color(ray);
+        let ray = Ray::new(camera_center, pixel_center - camera_center);
+        let color = ray_color(ray, &world);
         let u8_color = color.map(|x| (x * 255.0).round() as u8);
         pixels.copy_from_slice(
             &[u8_color.x, u8_color.y, u8_color.z, 0xff]
@@ -102,27 +106,16 @@ fn draw_image(frame: &mut [u8]) {
 }
 
 type Color = Vector3<f64>;
-fn ray_color(ray: Ray<f64>) -> Color {
-    let center = Vector3::new(0.0, 0.0, -1.0);
-    if let Some(t) = hit_sphere(&center, 0.5, &ray) {
-        let normal = (ray.at(t) - center).normalize();
-        return (normal + Vector3::new(1.0, 1.0, 1.0)) * 0.5;
+fn ray_color<T: Hitter>(ray: Ray<f64>, hittables: &[T]) -> Color {
+    if let Some(record) = hittables.hit(&ray, 0.0, f64::infinity()) {
+        return 0.5 * (record.normal + Vector3::from_value(1.0))
     }
     let unit_dir = ray.dir.normalize();
     let a = 0.5 * (unit_dir.y + 1.0);
-    (1.0 - a) * Vector3::new(1.0, 1.0, 1.0) + a * Vector3::new(0.5, 0.7, 1.0)
+    (1.0 - a) * Vector3::from_value(1.0) + a * Vector3::new(0.5, 0.7, 1.0)
 }
 
-fn hit_sphere(center: &Vector3<f64>, rad: f64, ray: &Ray<f64>) -> Option<f64> {
-    // https://raytracing.github.io/books/RayTracingInOneWeekend.html#addingasphere/ray-sphereintersection
-    let oc = center - ray.orig;
-    let a = ray.dir.dot(ray.dir);
-    let h = ray.dir.dot(oc);
-    let c = oc.dot(oc) - rad * rad;
-    let discriminant = h * h - a * c;
-    (discriminant >= 0.0).then(|| (h - discriminant.sqrt()) / a)
 
-}
 
 struct HitRecord {
     point: Vector3<f64>,
@@ -171,8 +164,8 @@ impl Hitter for Sphere {
         }
         let sqrtd = discriminant.sqrt();
         let root = {
-            let root_a = h-sqrtd / a;
-            let root_b = h+sqrtd / a;
+            let root_a = (h-sqrtd) / a;
+            let root_b = (h+sqrtd) / a;
             if (t_min..t_max).contains(&root_a){
                 Some(root_a)
             } else if (t_min..t_max).contains(&root_b) {
@@ -189,3 +182,22 @@ impl Hitter for Sphere {
         Some(record) 
     }
 }
+
+
+impl<T: Hitter> Hitter for [T] {
+    fn hit(&self, ray: &Ray<f64>, t_min: f64, t_max: f64) -> Option<HitRecord> {
+        let mut record = None;
+        let mut closest = t_max;
+        for object in self {
+            // Don't consider any object further
+            let possible_record = object.hit(ray, t_min, closest);
+            if let Some(obj_record) = possible_record {
+                closest = obj_record.t;
+                record = Some(obj_record);
+            }
+        }
+        record
+    }
+}
+
+
