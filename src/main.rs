@@ -246,7 +246,10 @@ impl Camera {
 
             // color is in 0..1 need to map to 0-255
             // Square root is gamma correction
-            let u8_color: [u8; 4] = color.map(|x| (x * 255.0).round() as u8).extend(255).into();
+            let u8_color: [u8; 4] = color
+                .map(|x| (x.sqrt() * 255.0).round() as u8)
+                .extend(255)
+                .into();
 
             pixels.copy_from_slice(&u8_color);
         }
