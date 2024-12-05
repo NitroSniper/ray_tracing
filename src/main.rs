@@ -14,8 +14,9 @@ use winit::{
 use winit_input_helper::WinitInputHelper;
 
 static ASPECT_RATIO: f64 = 16.0 / 9.0;
-static IMAGE_WIDTH: u32 = 256;
+static IMAGE_WIDTH: u32 = 400;
 static SAMPLES: u32 = 100;
+static MAX_DEPTH: u32 = 10;
 
 fn main() {
     env_logger::init();
@@ -65,7 +66,7 @@ fn main() {
         } => {
             // Calculation
             let now = Instant::now();
-            camera.render(pixels.frame_mut(), &world);
+            camera.render(pixels.frame_mut(), &world, MAX_DEPTH);
             info!("Calculation took {:?}", now.elapsed());
             pixels.render().unwrap();
             window.request_redraw();
@@ -197,9 +198,20 @@ impl Camera {
             sample_per_pixel,
         }
     }
-    fn ray_color<T: Hitter>(ray: Ray<f64>, hittables: &[T]) -> Color {
+    fn ray_color<T: Hitter>(depth: u32, ray: Ray<f64>, hittables: &[T]) -> Color {
+        if depth <= 0 {
+            return Vector3::from_value(0.0);
+        }
         if let Some(record) = hittables.hit(&ray, &(0.0..f64::infinity())) {
-            return 0.5 * (record.normal + Vector3::from_value(1.0));
+            return 0.5
+                * Camera::ray_color(
+                    depth - 1,
+                    Ray::new(
+                        record.point,
+                        *Vector3::random_unit_vector().invert_if_dot(&record.normal, true),
+                    ),
+                    hittables,
+                );
         }
         let unit_dir = ray.dir.normalize();
         let a = 0.5 * (unit_dir.y + 1.0);
@@ -219,13 +231,13 @@ impl Camera {
         ray
     }
 
-    fn render<T: Hitter>(&self, frame: &mut [u8], world: &[T]) {
+    fn render<T: Hitter>(&self, frame: &mut [u8], world: &[T], max_depth: u32) {
         for (i, pixels) in frame.chunks_exact_mut(4).enumerate() {
             let x = i % self.image_width as usize;
             let y = i / self.image_width as usize;
             let color = (0..self.sample_per_pixel).fold(Vector3::from_value(0.0), |acc, _| {
                 let ray = self.get_ray(x, y, -0.5..0.5);
-                acc + Camera::ray_color(ray, world)
+                acc + Camera::ray_color(max_depth, ray, world)
             }) / self.sample_per_pixel as f64;
 
             // color is in 0..1 need to map to 0-255
