@@ -1,9 +1,10 @@
-use std::ops::Range;
+use std::{ops::Range, time::Instant};
 
-use cgmath::{num_traits::Float, Array, ElementWise, InnerSpace, Vector2, Vector3};
+use cgmath::{num_traits::Float, Array, ElementWise, InnerSpace, Vector3};
+use log::info;
 use pixels::{Pixels, SurfaceTexture};
 use rand::Rng;
-use ray_tracing::Ray;
+use ray_tracing::{Ray, VectorRayExt};
 use winit::{
     dpi::LogicalSize,
     event::WindowEvent,
@@ -14,8 +15,10 @@ use winit_input_helper::WinitInputHelper;
 
 static ASPECT_RATIO: f64 = 16.0 / 9.0;
 static IMAGE_WIDTH: u32 = 256;
+static SAMPLES: u32 = 100;
 
 fn main() {
+    env_logger::init();
     // calculate image height
 
     // World
@@ -33,7 +36,7 @@ fn main() {
     let event_loop = EventLoop::new().unwrap();
     let _input = WinitInputHelper::new();
     event_loop.set_control_flow(ControlFlow::Poll);
-    let camera = Camera::new(ASPECT_RATIO, IMAGE_WIDTH, 10);
+    let camera = Camera::new(ASPECT_RATIO, IMAGE_WIDTH, SAMPLES);
 
     let window = {
         let size = LogicalSize::new(camera.image_width as u32, camera.image_height as u32);
@@ -60,7 +63,10 @@ fn main() {
             event: WindowEvent::RedrawRequested,
             ..
         } => {
+            // Calculation
+            let now = Instant::now();
             camera.render(pixels.frame_mut(), &world);
+            info!("Calculation took {:?}", now.elapsed());
             pixels.render().unwrap();
             window.request_redraw();
         }
@@ -75,17 +81,6 @@ struct HitRecord {
     normal: Vector3<f64>,
     t: f64,
     front_face: bool,
-}
-
-impl HitRecord {
-    fn set_face_normal(&mut self, ray: &Ray<f64>, out_norm: &Vector3<f64>) {
-        self.front_face = ray.dir.dot(*out_norm) < 0.0;
-        self.normal = if self.front_face {
-            *out_norm
-        } else {
-            -1.0 * out_norm
-        };
-    }
 }
 
 impl Default for HitRecord {
@@ -133,8 +128,8 @@ impl Hitter for Sphere {
         let mut record = HitRecord::default();
         record.t = root;
         record.point = ray.at(root);
-        let out_normal = (record.point - self.center) / self.radius;
-        record.set_face_normal(ray, &out_normal);
+        record.normal = (record.point - self.center) / self.radius;
+        record.normal.invert_if_dot(&ray.dir, false);
         Some(record)
     }
 }
@@ -180,7 +175,7 @@ impl Camera {
         let f_height = image_height as f64;
 
         let vp_height = 2.0;
-        let vp_width = vp_height * (f_width / f_height);
+        let vp_width = vp_height * aspect_ratio;
         let focal_length = 1.0;
         let center = Vector3::from_value(0.0);
 
@@ -211,10 +206,14 @@ impl Camera {
         (1.0 - a) * Vector3::from_value(1.0) + a * Vector3::new(0.5, 0.7, 1.0)
     }
 
-    pub fn get_ray(&self, x: usize, y: usize, variance: &Range<f64>) -> Ray<f64> {
+    pub fn get_ray(&self, x: usize, y: usize, variance: Range<f64>) -> Ray<f64> {
         let mut rng = rand::thread_rng();
-        let offset = Vector3::new(rng.gen_range(-0.5..0.5), rng.gen_range(-0.5..0.5), 0.0);
-        let pixel = Vector3::<f64>::new(x as f64, y as f64, 0.0);
+        let offset = Vector3::new(
+            rng.gen_range(variance.start..variance.end),
+            rng.gen_range(variance.start..variance.end),
+            0.0,
+        );
+        let pixel = Vector3::new(x as f64, y as f64, 0.0);
         let pixel_center = (offset + pixel).mul_element_wise(self.pixel_delta) + self.pixel00_loc;
         let ray = Ray::new(self.center, pixel_center - self.center);
         ray
@@ -222,16 +221,17 @@ impl Camera {
 
     fn render<T: Hitter>(&self, frame: &mut [u8], world: &[T]) {
         for (i, pixels) in frame.chunks_exact_mut(4).enumerate() {
-            let x = i % IMAGE_WIDTH as usize;
-            let y = i / IMAGE_WIDTH as usize;
+            let x = i % self.image_width as usize;
+            let y = i / self.image_width as usize;
             let color = (0..self.sample_per_pixel).fold(Vector3::from_value(0.0), |acc, _| {
-                let ray = self.get_ray(x, y, &(0.0..2.0));
+                let ray = self.get_ray(x, y, -0.5..0.5);
                 acc + Camera::ray_color(ray, world)
             }) / self.sample_per_pixel as f64;
 
             // color is in 0..1 need to map to 0-255
-            let u8_color = color.map(|x| (x * 255.0).round() as u8);
-            pixels.copy_from_slice(&[u8_color.x, u8_color.y, u8_color.z, 0xff]);
+            let u8_color: [u8; 4] = color.map(|x| (x * 255.0).round() as u8).extend(255).into();
+
+            pixels.copy_from_slice(&u8_color);
         }
     }
 }
