@@ -1,7 +1,8 @@
 use std::ops::Range;
 
-use cgmath::{num_traits::Float, Array, InnerSpace, Vector3};
+use cgmath::{num_traits::Float, Array, ElementWise, InnerSpace, Vector2, Vector3};
 use pixels::{Pixels, SurfaceTexture};
+use rand::Rng;
 use ray_tracing::Ray;
 use winit::{
     dpi::LogicalSize,
@@ -32,7 +33,7 @@ fn main() {
     let event_loop = EventLoop::new().unwrap();
     let _input = WinitInputHelper::new();
     event_loop.set_control_flow(ControlFlow::Poll);
-    let camera = Camera::new(ASPECT_RATIO, IMAGE_WIDTH);
+    let camera = Camera::new(ASPECT_RATIO, IMAGE_WIDTH, 10);
 
     let window = {
         let size = LogicalSize::new(camera.image_width as u32, camera.image_height as u32);
@@ -160,12 +161,12 @@ struct Camera {
     image_height: u32,
     center: Vector3<f64>,
     pixel00_loc: Vector3<f64>,
-    pixel_delta_u: Vector3<f64>,
-    pixel_delta_v: Vector3<f64>,
+    pixel_delta: Vector3<f64>,
+    sample_per_pixel: u32,
 }
 
 impl Camera {
-    fn new(aspect_ratio: f64, image_width: u32) -> Self {
+    fn new(aspect_ratio: f64, image_width: u32, sample_per_pixel: u32) -> Self {
         let image_height = {
             let height = (image_width as f64 / aspect_ratio) as u32;
             if height == 0 {
@@ -183,17 +184,13 @@ impl Camera {
         let focal_length = 1.0;
         let center = Vector3::from_value(0.0);
 
-        // Calculate the vectors across the horizontal and down the vertical view edges.
-        let vp_u = Vector3::unit_x() * vp_width;
-        let vp_v = Vector3::unit_y() * -vp_height;
-
         // calculate delta between pixel
-        let pixel_delta_u = vp_u / f_width;
-        let pixel_delta_v = vp_v / f_height;
+        let vp = Vector3::new(vp_width, -vp_height, 0.0);
+        let pixel_delta = vp.div_element_wise(Vector3::new(f_width, f_height, 1.0));
 
         // calculate the location of the top left pixel
-        let top_left_pixel = center - Vector3::unit_z() * focal_length - vp_u / 2.0 - vp_v / 2.0;
-        let pixel00_loc = top_left_pixel + 0.5 * (pixel_delta_u + pixel_delta_v);
+        let top_left_pixel = center - Vector3::unit_z() * focal_length - vp / 2.0;
+        let pixel00_loc = top_left_pixel + pixel_delta / 2.0;
 
         Self {
             aspect_ratio,
@@ -201,8 +198,8 @@ impl Camera {
             image_height,
             center,
             pixel00_loc,
-            pixel_delta_u,
-            pixel_delta_v,
+            pixel_delta,
+            sample_per_pixel,
         }
     }
     fn ray_color<T: Hitter>(ray: Ray<f64>, hittables: &[T]) -> Color {
@@ -214,14 +211,25 @@ impl Camera {
         (1.0 - a) * Vector3::from_value(1.0) + a * Vector3::new(0.5, 0.7, 1.0)
     }
 
+    pub fn get_ray(&self, x: usize, y: usize, variance: &Range<f64>) -> Ray<f64> {
+        let mut rng = rand::thread_rng();
+        let offset = Vector3::new(rng.gen_range(-0.5..0.5), rng.gen_range(-0.5..0.5), 0.0);
+        let pixel = Vector3::<f64>::new(x as f64, y as f64, 0.0);
+        let pixel_center = (offset + pixel).mul_element_wise(self.pixel_delta) + self.pixel00_loc;
+        let ray = Ray::new(self.center, pixel_center - self.center);
+        ray
+    }
+
     fn render<T: Hitter>(&self, frame: &mut [u8], world: &[T]) {
         for (i, pixels) in frame.chunks_exact_mut(4).enumerate() {
             let x = i % IMAGE_WIDTH as usize;
             let y = i / IMAGE_WIDTH as usize;
-            let pixel_center =
-                self.pixel00_loc + self.pixel_delta_u * x as f64 + self.pixel_delta_v * y as f64;
-            let ray = Ray::new(self.center, pixel_center - self.center);
-            let color = Camera::ray_color(ray, world);
+            let color = (0..self.sample_per_pixel).fold(Vector3::from_value(0.0), |acc, _| {
+                let ray = self.get_ray(x, y, &(0.0..2.0));
+                acc + Camera::ray_color(ray, world)
+            }) / self.sample_per_pixel as f64;
+
+            // color is in 0..1 need to map to 0-255
             let u8_color = color.map(|x| (x * 255.0).round() as u8);
             pixels.copy_from_slice(&[u8_color.x, u8_color.y, u8_color.z, 0xff]);
         }
