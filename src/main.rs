@@ -1,6 +1,9 @@
 use std::{ops::Range, time::Instant};
 
-use cgmath::{num_traits::Float, Array, ElementWise, InnerSpace, Vector3};
+use cgmath::{
+    num_traits::{real::Real, Float},
+    Array, ElementWise, InnerSpace, Vector3,
+};
 use log::info;
 use pixels::{Pixels, SurfaceTexture};
 use rand::Rng;
@@ -198,16 +201,22 @@ impl Camera {
             sample_per_pixel,
         }
     }
-    fn ray_color<T: Hitter>(depth: u32, ray: Ray<f64>, hittables: &[T]) -> Color {
+    fn ray_color<T: Hitter>(depth: u32, ray: Ray<f64>, hittables: &[T], reflectance: f64) -> Color {
         if depth <= 0 {
             return Vector3::from_value(0.0);
         }
         if let Some(record) = hittables.hit(&ray, &(0.001..f64::infinity())) {
             let dir = record.normal + Vector3::random_unit_vector();
-            return 0.5 * Camera::ray_color(depth - 1, Ray::new(record.point, dir), hittables);
+            return reflectance
+                * Camera::ray_color(
+                    depth - 1,
+                    Ray::new(record.point, dir),
+                    hittables,
+                    reflectance,
+                );
         }
         let unit_dir = ray.dir.normalize();
-        let a = 0.5 * (unit_dir.y + 1.0);
+        let a = reflectance * (unit_dir.y + 1.0);
         (1.0 - a) * Vector3::from_value(1.0) + a * Vector3::new(0.5, 0.7, 1.0)
     }
 
@@ -228,12 +237,15 @@ impl Camera {
         for (i, pixels) in frame.chunks_exact_mut(4).enumerate() {
             let x = i % self.image_width as usize;
             let y = i / self.image_width as usize;
+            let gamma_index = self.image_width / 5;
+            let gamma_section = 0.1 + 0.2 * (x as u32 / gamma_index) as f64;
             let color = (0..self.sample_per_pixel).fold(Vector3::from_value(0.0), |acc, _| {
                 let ray = self.get_ray(x, y, -0.5..0.5);
-                acc + Camera::ray_color(max_depth, ray, world)
+                acc + Camera::ray_color(max_depth, ray, world, gamma_section)
             }) / self.sample_per_pixel as f64;
 
             // color is in 0..1 need to map to 0-255
+            // Square root is gamma correction
             let u8_color: [u8; 4] = color.map(|x| (x * 255.0).round() as u8).extend(255).into();
 
             pixels.copy_from_slice(&u8_color);
