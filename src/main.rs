@@ -202,16 +202,9 @@ impl Camera {
         if depth <= 0 {
             return Vector3::from_value(0.0);
         }
-        if let Some(record) = hittables.hit(&ray, &(0.0..f64::infinity())) {
-            return 0.5
-                * Camera::ray_color(
-                    depth - 1,
-                    Ray::new(
-                        record.point,
-                        *Vector3::random_unit_vector().invert_if_dot(&record.normal, true),
-                    ),
-                    hittables,
-                );
+        if let Some(record) = hittables.hit(&ray, &(0.001..f64::infinity())) {
+            let dir = record.normal + Vector3::random_unit_vector();
+            return 0.5 * Camera::ray_color(depth - 1, Ray::new(record.point, dir), hittables);
         }
         let unit_dir = ray.dir.normalize();
         let a = 0.5 * (unit_dir.y + 1.0);
