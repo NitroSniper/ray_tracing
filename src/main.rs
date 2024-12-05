@@ -1,4 +1,6 @@
-use cgmath::{num_traits::{Float, FromPrimitive}, Array, ElementWise, InnerSpace, Vector3, Zero};
+use std::ops::Range;
+
+use cgmath::{num_traits::Float, Array, InnerSpace, Vector3};
 use pixels::{Pixels, SurfaceTexture};
 use ray_tracing::Ray;
 use winit::{
@@ -24,7 +26,7 @@ fn main() {
 
     // image
     let event_loop = EventLoop::new().unwrap();
-    let input = WinitInputHelper::new();
+    let _input = WinitInputHelper::new();
     event_loop.set_control_flow(ControlFlow::Poll);
 
     let window = {
@@ -61,13 +63,6 @@ fn main() {
 }
 
 fn draw_image(frame: &mut [u8]) {
-    let aspect_ratio = 16.0 / 9.0;
-    let image_width = 256;
-
-    // calculate image height
-    let image_height = (image_width as f64 / aspect_ratio) as u64;
-    let image_height = image_height.is_zero().then(|| 1).unwrap_or(image_height);
-
     // World
     let sphere_1 = Sphere {center: Vector3::new(0.0, 0.0, -1.0), radius: 0.5};
     let sphere_2 = Sphere {center: Vector3::new(0.0, -100.5, -1.0), radius: 100.0};
@@ -75,17 +70,17 @@ fn draw_image(frame: &mut [u8]) {
 
     // Camera
     let vp_height = 2.0;
-    let vp_width = vp_height * (image_width as f64 / image_height as f64);
+    let vp_width = vp_height * (IMAGE_WIDTH as f64 / IMAGE_HEIGHT as f64);
     let focal_length = 1.0;
-    let camera_center = Vector3::new(0.0, 0.0, 0.0);
+    let camera_center = Vector3::from_value(0.0);
 
     // Calculate the vectors across the horizontal and down the vertical view edges.
-    let vp_u = Vector3::new(vp_width, 0.0, 0.0);
-    let vp_v = Vector3::new(0.0, -vp_height, 0.0);
+    let vp_u = Vector3::unit_x() * vp_width;
+    let vp_v = Vector3::unit_y() * -vp_height;
 
     // calculate delta between pixel
-    let pixel_delta_u = vp_u / image_width as f64;
-    let pixel_delta_v = vp_v / image_height as f64;
+    let pixel_delta_u = vp_u / IMAGE_WIDTH as f64;
+    let pixel_delta_v = vp_v / IMAGE_HEIGHT as f64;
 
     // calculate the location of the top left pixel
     let top_left_pixel = camera_center - Vector3::unit_z() * focal_length - vp_u / 2.0 - vp_v / 2.0;
@@ -107,7 +102,7 @@ fn draw_image(frame: &mut [u8]) {
 
 type Color = Vector3<f64>;
 fn ray_color<T: Hitter>(ray: Ray<f64>, hittables: &[T]) -> Color {
-    if let Some(record) = hittables.hit(&ray, 0.0, f64::infinity()) {
+    if let Some(record) = hittables.hit(&ray, &(0.0..f64::infinity())) {
         return 0.5 * (record.normal + Vector3::from_value(1.0))
     }
     let unit_dir = ray.dir.normalize();
@@ -144,7 +139,7 @@ impl Default for HitRecord {
 
 
 trait Hitter {
-    fn hit(&self, ray: &Ray<f64>, t_min: f64, t_max: f64) -> Option<HitRecord>;
+    fn hit(&self, ray: &Ray<f64>, t: &Range<f64>) -> Option<HitRecord>;
 }
 
 struct Sphere {
@@ -153,7 +148,7 @@ struct Sphere {
 }
 
 impl Hitter for Sphere {
-    fn hit(&self, ray: &Ray<f64>, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray<f64>, t: &Range<f64>) -> Option<HitRecord> {
         let oc = self.center - ray.orig;
         let a = ray.dir.dot(ray.dir);
         let h = ray.dir.dot(oc);
@@ -166,9 +161,9 @@ impl Hitter for Sphere {
         let root = {
             let root_a = (h-sqrtd) / a;
             let root_b = (h+sqrtd) / a;
-            if (t_min..t_max).contains(&root_a){
+            if t.contains(&root_a){
                 Some(root_a)
-            } else if (t_min..t_max).contains(&root_b) {
+            } else if t.contains(&root_b) {
                 Some(root_b)
             } else {
                 None
@@ -176,7 +171,7 @@ impl Hitter for Sphere {
         }?;
         let mut record = HitRecord::default();
         record.t = root;
-        record.point = ray.at(record.t);
+        record.point = ray.at(root);
         let out_normal = (record.point - self.center) / self.radius;
         record.set_face_normal(ray, &out_normal);
         Some(record) 
@@ -185,12 +180,12 @@ impl Hitter for Sphere {
 
 
 impl<T: Hitter> Hitter for [T] {
-    fn hit(&self, ray: &Ray<f64>, t_min: f64, t_max: f64) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray<f64>, t: &Range<f64>) -> Option<HitRecord> {
         let mut record = None;
-        let mut closest = t_max;
+        let mut closest = t.end;
         for object in self {
             // Don't consider any object further
-            let possible_record = object.hit(ray, t_min, closest);
+            let possible_record = object.hit(ray, &(t.start..closest));
             if let Some(obj_record) = possible_record {
                 closest = obj_record.t;
                 record = Some(obj_record);
