@@ -2,9 +2,9 @@ use std::{ops::Range, time::Instant};
 
 use cgmath::{
     num_traits::{real::Real, Float},
-    Array, ElementWise, InnerSpace, Vector3,
+    Array, ElementWise, InnerSpace, Vector2, Vector3,
 };
-use log::info;
+use log::{debug, info};
 use pixels::{Pixels, SurfaceTexture};
 use rand::Rng;
 use ray_tracing::{Ray, VectorRayExt};
@@ -12,14 +12,15 @@ use winit::{
     dpi::LogicalSize,
     event::WindowEvent,
     event_loop::{ControlFlow, EventLoop},
+    keyboard::KeyCode,
     window::WindowBuilder,
 };
 use winit_input_helper::WinitInputHelper;
 
 static ASPECT_RATIO: f64 = 16.0 / 9.0;
 static IMAGE_WIDTH: u32 = 400;
-static SAMPLES: u32 = 100;
-static MAX_DEPTH: u32 = 10;
+static SAMPLES: u32 = 1;
+static MAX_DEPTH: u32 = 5;
 
 fn main() {
     env_logger::init();
@@ -38,9 +39,9 @@ fn main() {
 
     // image
     let event_loop = EventLoop::new().unwrap();
-    let _input = WinitInputHelper::new();
+    let mut input = WinitInputHelper::new();
     event_loop.set_control_flow(ControlFlow::Poll);
-    let camera = Camera::new(ASPECT_RATIO, IMAGE_WIDTH, SAMPLES);
+    let mut camera = Camera::new(ASPECT_RATIO, IMAGE_WIDTH, SAMPLES);
 
     let window = {
         let size = LogicalSize::new(camera.image_width as u32, camera.image_height as u32);
@@ -53,28 +54,52 @@ fn main() {
     };
     let mut pixels = {
         let window_size = window.inner_size();
-        dbg!(window_size);
         let surf = SurfaceTexture::new(window_size.width, window_size.height, &window);
         Pixels::new(camera.image_width as u32, camera.image_height as u32, surf).unwrap()
     };
 
-    let _ = event_loop.run(|event, elwt| match event {
-        winit::event::Event::WindowEvent {
-            event: WindowEvent::CloseRequested,
-            ..
-        } => elwt.exit(),
-        winit::event::Event::WindowEvent {
-            event: WindowEvent::RedrawRequested,
-            ..
-        } => {
-            // Calculation
-            let now = Instant::now();
-            camera.render(pixels.frame_mut(), &world, MAX_DEPTH);
-            info!("Calculation took {:?}", now.elapsed());
-            pixels.render().unwrap();
-            window.request_redraw();
+    let _ = event_loop.run(|event, elwt| {
+        if input.update(&event) {
+            if input.key_held(KeyCode::KeyW) {
+                debug!("W pressed");
+                camera.center.x += 0.1;
+            }
+            if input.key_held(KeyCode::KeyS) {
+                debug!("W pressed");
+                camera.center.x -= 0.1;
+            }
+            if input.key_held(KeyCode::KeyA) {
+                debug!("W pressed");
+                camera.center.y += 0.1;
+            }
+            if input.key_held(KeyCode::KeyD) {
+                debug!("W pressed");
+                camera.center.y -= 0.1;
+            }
         }
-        _ => (),
+
+        match event {
+            winit::event::Event::WindowEvent {
+                event: WindowEvent::CloseRequested,
+                ..
+            } => elwt.exit(),
+            winit::event::Event::WindowEvent {
+                event: WindowEvent::RedrawRequested,
+                ..
+            } => {
+                // Event loop
+
+                debug!("{:?}", camera.center);
+
+                // Calculation
+                let now = Instant::now();
+                camera.render(pixels.frame_mut(), &world, MAX_DEPTH);
+                info!("Calculation took {:?}", now.elapsed());
+                pixels.render().unwrap();
+                window.request_redraw();
+            }
+            _ => (),
+        }
     });
 }
 
@@ -160,12 +185,16 @@ struct Camera {
     image_height: u32,
     center: Vector3<f64>,
     pixel00_loc: Vector3<f64>,
-    pixel_delta: Vector3<f64>,
+    pixel_delta: (Vector3<f64>, Vector3<f64>),
     sample_per_pixel: u32,
 }
 
 impl Camera {
     fn new(aspect_ratio: f64, image_width: u32, sample_per_pixel: u32) -> Self {
+        let v_up = Vector3::unit_y();
+        let center = Vector3::new(0.0, 0.0, 0.0);
+        let look_at = Vector3::new(0.0, 0.0, 0.0);
+
         let image_height = {
             let height = (image_width as f64 / aspect_ratio) as u32;
             if height == 0 {
@@ -180,16 +209,22 @@ impl Camera {
 
         let vp_height = 2.0;
         let vp_width = vp_height * aspect_ratio;
-        let focal_length = 1.0;
-        let center = Vector3::from_value(0.0);
+        let focal_length = (center - look_at).magnitude();
+
+        let w = center.normalize();
+        let u = v_up.cross(w);
+        let v = w.cross(u);
 
         // calculate delta between pixel
-        let vp = Vector3::new(vp_width, -vp_height, 0.0);
-        let pixel_delta = vp.div_element_wise(Vector3::new(f_width, f_height, 1.0));
+        let vp_u = u * vp_width;
+        let vp_v = v * vp_height;
+
+        let delta_u = vp_u / vp_width;
+        let delta_v = vp_v / vp_width;
 
         // calculate the location of the top left pixel
-        let top_left_pixel = center - Vector3::unit_z() * focal_length - vp / 2.0;
-        let pixel00_loc = top_left_pixel + pixel_delta / 2.0;
+        let top_left_pixel = center - w * focal_length - (vp_u + vp_v) / 2.0;
+        let pixel00_loc = top_left_pixel + (delta_u + delta_v) / 2.0;
 
         Self {
             aspect_ratio,
@@ -197,7 +232,7 @@ impl Camera {
             image_height,
             center,
             pixel00_loc,
-            pixel_delta,
+            pixel_delta: (delta_u, delta_v),
             sample_per_pixel,
         }
     }
@@ -222,13 +257,13 @@ impl Camera {
 
     pub fn get_ray(&self, x: usize, y: usize, variance: Range<f64>) -> Ray<f64> {
         let mut rng = rand::thread_rng();
-        let offset = Vector3::new(
+        let offset = Vector2::new(
             rng.gen_range(variance.start..variance.end),
             rng.gen_range(variance.start..variance.end),
-            0.0,
         );
-        let pixel = Vector3::new(x as f64, y as f64, 0.0);
-        let pixel_center = (offset + pixel).mul_element_wise(self.pixel_delta) + self.pixel00_loc;
+        let pixel = Vector2::new(x as f64, y as f64) + offset;
+        let pixel_center =
+            pixel.x * self.pixel_delta.0 + pixel.y * self.pixel_delta.1 + self.pixel00_loc;
         let ray = Ray::new(self.center, pixel_center - self.center);
         ray
     }
