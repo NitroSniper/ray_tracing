@@ -8,6 +8,10 @@ use log::info;
 use pixels::{Pixels, SurfaceTexture};
 use rand::Rng;
 use ray_tracing::{Ray, VectorRayExt};
+use rayon::{
+    iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator},
+    slice::ParallelSliceMut,
+};
 use winit::{
     dpi::LogicalSize,
     event::WindowEvent,
@@ -18,8 +22,8 @@ use winit_input_helper::WinitInputHelper;
 
 static ASPECT_RATIO: f64 = 16.0 / 9.0;
 static IMAGE_WIDTH: u32 = 400;
-static SAMPLES: u32 = 100;
-static MAX_DEPTH: u32 = 10;
+static SAMPLES: u32 = 30;
+static MAX_DEPTH: u32 = 20;
 
 fn main() {
     env_logger::init();
@@ -233,15 +237,15 @@ impl Camera {
         ray
     }
 
-    fn render<T: Hitter>(&self, frame: &mut [u8], world: &[T], max_depth: u32) {
-        for (i, pixels) in frame.chunks_exact_mut(4).enumerate() {
+    fn render<T: Hitter + Sync>(&self, frame: &mut [u8], world: &[T], max_depth: u32) {
+        frame.par_chunks_mut(4).enumerate().for_each(|(i, pixels)| {
             let x = i % self.image_width as usize;
             let y = i / self.image_width as usize;
             let gamma_index = self.image_width / 5;
             let gamma_section = 0.1 + 0.2 * (x as u32 / gamma_index) as f64;
             let color = (0..self.sample_per_pixel).fold(Vector3::from_value(0.0), |acc, _| {
                 let ray = self.get_ray(x, y, -0.5..0.5);
-                acc + Camera::ray_color(max_depth, ray, world, gamma_section)
+                acc + Camera::ray_color(max_depth, ray, world, 0.5)
             }) / self.sample_per_pixel as f64;
 
             // color is in 0..1 need to map to 0-255
@@ -252,6 +256,6 @@ impl Camera {
                 .into();
 
             pixels.copy_from_slice(&u8_color);
-        }
+        })
     }
 }

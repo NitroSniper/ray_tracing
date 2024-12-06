@@ -10,6 +10,7 @@ error-iter = "0.4"
 indicatif = "0.17.8"
 log = "0.4"
 rand = "0.8.5"
+rayon = "1.10.0"
 winit = "0.29"
 winit_input_helper = "0.15"
 
