@@ -1,15 +1,13 @@
+#![allow(warnings)]
 use std::{ops::Range, time::Instant};
 
-use cgmath::{
-    num_traits::{real::Real, Float},
-    Array, ElementWise, InnerSpace, Vector3,
-};
+use cgmath::{num_traits::Float, Array, ElementWise, InnerSpace, Vector3};
 use log::info;
 use pixels::{Pixels, SurfaceTexture};
 use rand::Rng;
 use ray_tracing::{Ray, VectorRayExt};
 use rayon::{
-    iter::{IndexedParallelIterator, IntoParallelIterator, ParallelIterator},
+    iter::{IndexedParallelIterator, ParallelIterator},
     slice::ParallelSliceMut,
 };
 use winit::{
@@ -22,7 +20,7 @@ use winit_input_helper::WinitInputHelper;
 
 static ASPECT_RATIO: f64 = 16.0 / 9.0;
 static IMAGE_WIDTH: u32 = 400;
-static SAMPLES: u32 = 30;
+static SAMPLES: u32 = 100;
 static MAX_DEPTH: u32 = 20;
 
 fn main() {
@@ -243,9 +241,10 @@ impl Camera {
             let y = i / self.image_width as usize;
             let gamma_index = self.image_width / 5;
             let gamma_section = 0.1 + 0.2 * (x as u32 / gamma_index) as f64;
+
             let color = (0..self.sample_per_pixel).fold(Vector3::from_value(0.0), |acc, _| {
                 let ray = self.get_ray(x, y, -0.5..0.5);
-                acc + Camera::ray_color(max_depth, ray, world, 0.5)
+                acc + Camera::ray_color(max_depth, ray, world, gamma_section)
             }) / self.sample_per_pixel as f64;
 
             // color is in 0..1 need to map to 0-255
