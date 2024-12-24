@@ -23,40 +23,28 @@
     inputs.flake-utils.lib.eachDefaultSystem (
       system:
       let
+        chain = "nightly";
+
         pkgs = import inputs.nixpkgs {
           inherit system;
           overlays = [ (import inputs.rust-overlay) ];
         };
 
-        utilities = with pkgs; [
-          rust-analyzer
-          bacon
-        ];
-
         # Tell Crane to use our toolchain
         craneLib = (inputs.crane.mkLib pkgs).overrideToolchain (
-          p: p.rust-bin.nightly.latest.default.override { }
+          p: p.rust-bin.${chain}.latest.default.override { }
         );
 
         # Common arguments can be set here to avoid repeating them later
-        commonArgs = rec {
+        commonArgs = {
           src = craneLib.cleanCargoSource ./.;
           strictDeps = true;
-
-          buildInputs = with pkgs; [
-            libxkbcommon
-            libGL
-            wayland
-          ];
           # Additional environment variables can be set directly
           # MY_CUSTOM_VAR = "some value";
-          LD_LIBRARY_PATH = "${inputs.lib.makeLibraryPath buildInputs}";
-          RUST_SRC_PATH = "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
         };
 
         # Build *just* the cargo dependencies, so we can reuse
         # all of that work (e.g. via cachix) when running in CI
-
         cargoArtifacts = craneLib.buildDepsOnly commonArgs;
         bin = craneLib.buildPackage (commonArgs // { inherit cargoArtifacts; });
 
@@ -76,13 +64,30 @@
         };
         devShells =
           let
-            util = pkgs.mkShell { packages = utilities; };
-            battery = craneLib.devShell { packages = utilities; };
-            chain = craneLib.devShell { };
+            developerArgs = {
+              # Runtime environment variables can be set directly
+              LD_LIBRARY_PATH =
+                with pkgs;
+                lib.makeLibraryPath [
+
+                  # Wayland stuff
+                  libGL
+                  libxkbcommon
+                  wayland
+                ];
+              packages = with pkgs; [
+                rust-analyzer
+                bacon
+                hyperfine
+                cargo-flamegraph
+              ];
+            };
+            developer = craneLib.devShell developerArgs;
+            runtime = craneLib.devShell { };
           in
           {
-            inherit battery chain util;
-            default = battery;
+            inherit developer runtime;
+            default = developer;
           };
 
       }

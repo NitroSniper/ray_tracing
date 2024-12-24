@@ -101,7 +101,7 @@ impl Default for HitRecord {
 }
 
 trait Hitter {
-    fn hit(&self, ray: &Ray<f64>, t: &Range<f64>) -> Option<HitRecord>;
+    fn hit(&self, ray: &Ray<f64>, t: &Bound) -> Option<HitRecord>;
 }
 
 struct Sphere {
@@ -110,7 +110,7 @@ struct Sphere {
 }
 
 impl Hitter for Sphere {
-    fn hit(&self, ray: &Ray<f64>, t: &Range<f64>) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray<f64>, t: &Bound) -> Option<HitRecord> {
         let oc = self.center - ray.orig;
         let a = ray.dir.dot(ray.dir);
         let h = ray.dir.dot(oc);
@@ -123,9 +123,9 @@ impl Hitter for Sphere {
         let root = {
             let root_a = (h - sqrtd) / a;
             let root_b = (h + sqrtd) / a;
-            if t.contains(&root_a) {
+            if t.contains(root_a) {
                 Some(root_a)
-            } else if t.contains(&root_b) {
+            } else if t.contains(root_b) {
                 Some(root_b)
             } else {
                 None
@@ -141,18 +141,23 @@ impl Hitter for Sphere {
 }
 
 impl<T: Hitter> Hitter for [T] {
-    fn hit(&self, ray: &Ray<f64>, t: &Range<f64>) -> Option<HitRecord> {
+    fn hit(&self, ray: &Ray<f64>, t: &Bound) -> Option<HitRecord> {
         let mut record = None;
         let mut closest = t.end;
         for object in self {
             // Don't consider any object further
-            let possible_record = object.hit(ray, &(t.start..closest));
+            let possible_record = object.hit(ray, &Bound::new(t.begin, closest));
             if let Some(obj_record) = possible_record {
                 closest = obj_record.t;
                 record = Some(obj_record);
             }
         }
         record
+
+        //self.iter().fold(None, |record: Option<HitRecord>, e| {
+        //    let possible = e.hit(ray, &t.clamp_end(record.as_ref().map(|r| r.t)));
+        //    possible.or(record)
+        //})
     }
 }
 
@@ -207,7 +212,7 @@ impl Camera {
         if depth <= 0 {
             return Vector3::from_value(0.0);
         }
-        if let Some(record) = hittables.hit(&ray, &(0.001..f64::infinity())) {
+        if let Some(record) = hittables.hit(&ray, &Bound::new(0.001, f64::infinity())) {
             let dir = record.normal + Vector3::random_unit_vector();
             return reflectance
                 * Camera::ray_color(
@@ -256,5 +261,24 @@ impl Camera {
 
             pixels.copy_from_slice(&u8_color);
         })
+    }
+}
+
+struct Bound {
+    begin: f64,
+    end: f64,
+}
+
+impl Bound {
+    fn new(begin: f64, end: f64) -> Self {
+        Self { begin, end }
+    }
+
+    fn contains(&self, t: f64) -> bool {
+        self.begin < t && t < self.end
+    }
+
+    fn clamp_end(&self, t: f64) -> Bound {
+        Bound { end: t, ..*self }
     }
 }
