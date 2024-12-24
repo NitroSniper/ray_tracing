@@ -142,22 +142,11 @@ impl Hitter for Sphere {
 
 impl<T: Hitter> Hitter for [T] {
     fn hit(&self, ray: &Ray<f64>, t: &Bound) -> Option<HitRecord> {
-        let mut record = None;
-        let mut closest = t.end;
-        for object in self {
-            // Don't consider any object further
-            let possible_record = object.hit(ray, &Bound::new(t.begin, closest));
-            if let Some(obj_record) = possible_record {
-                closest = obj_record.t;
-                record = Some(obj_record);
-            }
-        }
-        record
-
-        //self.iter().fold(None, |record: Option<HitRecord>, e| {
-        //    let possible = e.hit(ray, &t.clamp_end(record.as_ref().map(|r| r.t)));
-        //    possible.or(record)
-        //})
+        self.iter().fold(None, |record, object| {
+            object
+                .hit(ray, &t.clamp_end(record.as_ref().map(|r| r.t), t.end))
+                .or(record)
+        })
     }
 }
 
@@ -278,7 +267,10 @@ impl Bound {
         self.begin < t && t < self.end
     }
 
-    fn clamp_end(&self, t: f64) -> Bound {
-        Bound { end: t, ..*self }
+    fn clamp_end(&self, t: Option<f64>, default: f64) -> Bound {
+        Bound {
+            end: t.unwrap_or(default),
+            ..*self
+        }
     }
 }
