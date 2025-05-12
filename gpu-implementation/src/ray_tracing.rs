@@ -1,8 +1,9 @@
-use std::iter::zip;
+use cudarc::driver::{CudaContext, CudaFunction, CudaModule, CudaSlice, LaunchConfig, PushKernelArg};
 use std::sync::Arc;
-use cudarc::driver::{CudaContext, CudaFunction, CudaModule, CudaSlice, CudaStream, LaunchConfig, PushKernelArg};
 
 pub mod cuda_types {
+    use cudarc::driver::DeviceRepr;
+
     pub type FloatSize = f32;
 
     struct Pixel {
@@ -11,26 +12,27 @@ pub mod cuda_types {
         b: FloatSize,
         a: FloatSize,
     }
+    pub struct Camera {
+        pub aspect_ratio: FloatSize,
+        pub image_width: u32,
+        pub image_height: u32,
+        pub samples_per_pixel: u32,
+        pub center: [FloatSize; 3],
+        pub pixel00_loc: [FloatSize; 3],
+        pub pixel_delta: [FloatSize; 3],
+    }
+    unsafe impl DeviceRepr for Camera {}
 }
 
+use cuda_types::Camera;
 use cuda_types::FloatSize;
 
-
-pub struct Camera {
-    pub aspect_ratio: FloatSize,
-    pub image_width: u32,
-    pub image_height: u32,
-    pub center: [FloatSize; 3],
-    pub pixel00_loc: [FloatSize; 3],
-    pub pixel_delta: [FloatSize; 3],
-    pub samples_per_pixel: u32,
-}
 
 pub struct CudaWorld {
     ctx: Arc<CudaContext>,
     module: Arc<CudaModule>,
     render: CudaFunction,
-    d_frames: CudaSlice<FloatSize>,
+    d_frame: CudaSlice<FloatSize>,
 }
 
 const PTX_SRC: &str = include_str!("kernel.cu");
@@ -39,32 +41,38 @@ impl CudaWorld {
     pub fn new(frame_size: usize) -> Self {
         let ctx = cudarc::driver::CudaContext::new(0).expect("Failed to create CudaContext");
         let stream = ctx.default_stream();
-        let ptx = cudarc::nvrtc::compile_ptx(PTX_SRC).expect("Failed to compile PTX");
+        let ptx = cudarc::nvrtc::compile_ptx(PTX_SRC).unwrap_or_else(|err| {
+            use cudarc::nvrtc::CompileError;
+            match err {
+                CompileError::CompileError { nvrtc: _, options: _, log } => unsafe{ panic!("{}", log.as_c_str().to_str().unwrap()) },
+                _ => panic!("Failed to compile PTX: {:#?}", err)
+            };
+        });
+
         let module = ctx.load_module(ptx).expect("Failed to load PTX");
         let render = module.load_function("render").expect("Failed to load render function");
 
-        let d_frames = stream.alloc_zeros::<FloatSize>(frame_size).expect("Failed to allocate frame buffer on device");
+        let d_frame = stream.alloc_zeros::<FloatSize>(frame_size).expect("Failed to allocate frame buffer on device");
 
         Self {
             ctx,
             module,
             render,
-            d_frames
+            d_frame
         }
     }
 
-    pub fn render(&mut self, frames: &mut [u8]) {
+    pub fn render(&mut self, frame: &mut [u8], camera: &Camera) {
         let stream = self.ctx.default_stream();
         let mut binding = stream.launch_builder(&self.render);
-        let builder = binding.arg(&mut self.d_frames);
-        let len = frames.len();
+        let builder = binding.arg(&mut self.d_frame).arg(camera);
 
         unsafe {
-            builder.launch(LaunchConfig::for_num_elems(len as u32))
+            builder.launch(LaunchConfig::for_num_elems(camera.image_width * camera.image_height))
         }.expect("Failed to launch kernel");
 
-        let float_frames = stream.memcpy_dtov(&self.d_frames).expect("Failed to copy device frames");
-        frames.iter_mut().zip(float_frames.iter()).for_each(|(dst, src)| {
+        let float_frames = stream.memcpy_dtov(&self.d_frame).expect("Failed to copy device frames");
+        frame.iter_mut().zip(float_frames.iter()).for_each(|(dst, src)| {
             *dst = src.clamp(0.0, 255.0) as u8;
         });
     }

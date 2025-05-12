@@ -13,16 +13,17 @@ use winit::event_loop::EventLoop;
 use winit::keyboard::KeyCode;
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
+use crate::ray_tracing::cuda_types::Camera;
 
 const WIDTH: u32 = 320;
-const HEIGHT: u32 = 240;
-
+const ASPECT_RATIO: f32 = 16.0 / 9.0;
 fn main() -> Result<(), Error> {
     env_logger::init();
     let event_loop = EventLoop::new().unwrap();
     let mut input = WinitInputHelper::new();
+    let camera = Camera::new(ASPECT_RATIO, WIDTH, 20);
     let window = {
-        let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
+        let size = LogicalSize::new(WIDTH as f64, camera.image_height as f64);
         WindowBuilder::new()
             .with_title("Hello Pixels")
             .with_inner_size(size)
@@ -34,7 +35,7 @@ fn main() -> Result<(), Error> {
     let mut pixels = {
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        Pixels::new(WIDTH, HEIGHT, surface_texture)?
+        Pixels::new(camera.image_width, camera.image_height, surface_texture)?
     };
 
     let mut cuda_world = CudaWorld::new(pixels.frame().len());
@@ -47,7 +48,7 @@ fn main() -> Result<(), Error> {
         {
 
             let elapsed = Instant::now();
-            cuda_world.render(pixels.frame_mut());
+            cuda_world.render(pixels.frame_mut(), &camera);
             dbg!(elapsed.elapsed());
             if let Err(err) = pixels.render() {
                 log_error("pixels.render", err);

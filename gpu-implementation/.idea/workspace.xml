@@ -7,14 +7,11 @@
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a375a8b2-714e-49ed-841c-ae1b0c3a6cc0" name="Changes" comment="Moved Cpu to own folder and added a basic GPU implementation program">
-      <change afterPath="$PROJECT_DIR$/../cpu-implementation/.idea/cpu-implementation.iml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/.idea/vcs.xml" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/src/ray_tracing.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
+    <list default="true" id="a375a8b2-714e-49ed-841c-ae1b0c3a6cc0" name="Changes" comment="GPU renders a coloured screen pixels">
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/kernel.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/kernel.cu" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ray_tracing.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/ray_tracing.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -123,7 +120,8 @@
       <option name="presentableId" value="Default" />
       <updated>1746385793392</updated>
       <workItem from="1746385794565" duration="462000" />
-      <workItem from="1746386280392" duration="13178000" />
+      <workItem from="1746386280392" duration="28130000" />
+      <workItem from="1746981630903" duration="9581000" />
     </task>
     <task id="LOCAL-00001" summary="Moved Cpu to own folder and added a basic GPU implementation program">
       <option name="closed" value="true" />
@@ -133,7 +131,15 @@
       <option name="project" value="LOCAL" />
       <updated>1746385965333</updated>
     </task>
-    <option name="localTasksCounter" value="2" />
+    <task id="LOCAL-00002" summary="GPU renders a blank screen with CUDA">
+      <option name="closed" value="true" />
+      <created>1746411723839</created>
+      <option name="number" value="00002" />
+      <option name="presentableId" value="LOCAL-00002" />
+      <option name="project" value="LOCAL" />
+      <updated>1746411723839</updated>
+    </task>
+    <option name="localTasksCounter" value="3" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -152,6 +158,8 @@
   </component>
   <component name="VcsManagerConfiguration">
     <MESSAGE value="Moved Cpu to own folder and added a basic GPU implementation program" />
-    <option name="LAST_COMMIT_MESSAGE" value="Moved Cpu to own folder and added a basic GPU implementation program" />
+    <MESSAGE value="GPU renders a blank screen with CUDA" />
+    <MESSAGE value="GPU renders a coloured screen pixels" />
+    <option name="LAST_COMMIT_MESSAGE" value="GPU renders a coloured screen pixels" />
   </component>
 </project>
