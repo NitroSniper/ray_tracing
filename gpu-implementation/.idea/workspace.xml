@@ -10,8 +10,6 @@
     <list default="true" id="a375a8b2-714e-49ed-841c-ae1b0c3a6cc0" name="Changes" comment="GPU renders a coloured screen pixels">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/kernel.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/kernel.cu" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ray_tracing.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/ray_tracing.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -71,6 +69,12 @@
     &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
 }</component>
+  <component name="RecentsManager">
+    <key name="MoveFile.RECENT_KEYS">
+      <recent name="C:\Users\Nitro\RustroverProjects\ray_tracing\gpu-implementation\src" />
+      <recent name="C:\Users\Nitro\RustroverProjects\ray_tracing\gpu-implementation\src\kernels" />
+    </key>
+  </component>
   <component name="RunManager" selected="Cargo.Run test_cuda">
     <configuration name="Run test_cuda" type="CargoCommandRunConfiguration" factoryName="Cargo Command">
       <option name="buildProfileId" value="dev" />
@@ -121,7 +125,7 @@
       <updated>1746385793392</updated>
       <workItem from="1746385794565" duration="462000" />
       <workItem from="1746386280392" duration="28130000" />
-      <workItem from="1746981630903" duration="9581000" />
+      <workItem from="1746981630903" duration="16480000" />
     </task>
     <task id="LOCAL-00001" summary="Moved Cpu to own folder and added a basic GPU implementation program">
       <option name="closed" value="true" />
@@ -139,7 +143,15 @@
       <option name="project" value="LOCAL" />
       <updated>1746411723839</updated>
     </task>
-    <option name="localTasksCounter" value="3" />
+    <task id="LOCAL-00003" summary="GPU renders a coloured screen pixels">
+      <option name="closed" value="true" />
+      <created>1747031147029</created>
+      <option name="number" value="00003" />
+      <option name="presentableId" value="LOCAL-00003" />
+      <option name="project" value="LOCAL" />
+      <updated>1747031147029</updated>
+    </task>
+    <option name="localTasksCounter" value="4" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
