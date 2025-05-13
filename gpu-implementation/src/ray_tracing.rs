@@ -35,7 +35,7 @@ pub struct CudaWorld {
     d_frame: CudaSlice<FloatSize>,
 }
 
-const PTX_SRC: &str = concat!(include_str!("cuda/floatN_helper.cu"), include_str!("cuda/kernel.cu"));
+const PTX_SRC: &str = concat!(include_str!("cuda/floatN_helper.cu"), include_str!("cuda/lib.cu"), include_str!("cuda/kernel.cu"));
 
 impl CudaWorld {
     pub fn new(frame_size: usize) -> Self {

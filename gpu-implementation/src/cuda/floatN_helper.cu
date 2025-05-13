@@ -98,3 +98,21 @@ __forceinline__ __device__ float3 __fffmaf_rz(const float3 a, const float3 b, co
 __forceinline__ __device__ float4 make_float4_f3(const float3 a, const float w) {
     return make_float4(a.x, a.y, a.z, w);
 }
+
+__forceinline__ __device__ float dot(const float3 a, const float3 b) {
+    return a.x*b.x + a.y*b.y + a.z*b.z;
+}
+
+__forceinline__ __device__ bool contains(const float2 a, const float b) {
+    return a.x < b && a.y > b;
+}
+__device__ float3 invert_if_dot(float3 a, const float3 b, bool is_negative) {
+    float multiplier = is_negative ? -1.0 : 1.0;
+    float val = dot(a, b);
+    if (val*multiplier > 0) {
+        a = mul(a, -1.0);
+    }
+    return a;
+}
+
+
