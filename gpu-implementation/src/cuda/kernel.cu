@@ -2,10 +2,11 @@ __device__ float3 ray_color(const ray r) {
     sphere s = {make_float3(0.0,0.0,-1.0), 0.5f};
     hit_record record = hit_sphere(s, r, make_float2(0.001, 1024.0));
     if (!record.is_none) {
-        return make_float3(1.0, 0.0,0.0);
+        float3 n = normalize(sub(ray_at(r, record.t), make_float3(0.0, 0.0, -1.0)));
+        return mul(make_float3(n.x+1.0, n.y+1.0,n.z+1.0), 0.5);
     }
 
-    float3 unit_dir = mul(r.dir, rnorm3df(r.dir.x, r.dir.y, r.dir.z));
+    float3 unit_dir = normalize(r.dir);
     float a = (unit_dir.y + 1.0f) * 0.5f;
     return add(mul(make_float3(1.0f, 1.0f, 1.0f), 1.0f-a), mul(make_float3(0.5f, 0.7f, 1.0f), a ));
 }

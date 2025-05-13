@@ -106,6 +106,11 @@ __forceinline__ __device__ float dot(const float3 a, const float3 b) {
 __forceinline__ __device__ bool contains(const float2 a, const float b) {
     return a.x < b && a.y > b;
 }
+__forceinline__ __device__ float3 normalize(const float3 a) {
+    return mul(a, rnorm3df(a.x, a.y, a.z));
+}
+
+
 __device__ float3 invert_if_dot(float3 a, const float3 b, bool is_negative) {
     float multiplier = is_negative ? -1.0 : 1.0;
     float val = dot(a, b);
