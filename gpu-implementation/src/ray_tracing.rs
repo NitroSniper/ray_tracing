@@ -35,10 +35,11 @@ pub struct CudaWorld {
     d_frame: CudaSlice<FloatSize>,
 }
 
-const PTX_SRC: &str = include_str!("kernel.cu");
+const PTX_SRC: &str = concat!(include_str!("cuda/floatN_helper.cu"), include_str!("cuda/kernel.cu"));
 
 impl CudaWorld {
     pub fn new(frame_size: usize) -> Self {
+        dbg!(PTX_SRC);
         let ctx = cudarc::driver::CudaContext::new(0).expect("Failed to create CudaContext");
         let stream = ctx.default_stream();
         let ptx = cudarc::nvrtc::compile_ptx(PTX_SRC).unwrap_or_else(|err| {
@@ -101,13 +102,13 @@ impl Camera {
 
         // calculate the location of the top left pixel
         let top_left_pixel = [
-            center[0] - focal_length - vp_width / 2.0,
-            center[1] - focal_length - vp_height / 2.0,
+            center[0] - vp_width / 2.0,
+            center[1] + vp_height / 2.0,
             center[2] - focal_length,
         ];
 
         let pixel00_loc: [FloatSize; 3] = std::array::from_fn(|i| {
-            top_left_pixel[i] - pixel_delta[i] / 2.0
+            top_left_pixel[i] + pixel_delta[i] / 2.0
         });
 
         Self {
