@@ -4,6 +4,7 @@ __device__ float3 ray_color(const ray r) {
     if (!record.is_none) {
         float3 n = normalize(sub(ray_at(r, record.t), make_float3(0.0, 0.0, -1.0)));
         return mul(make_float3(n.x+1.0, n.y+1.0,n.z+1.0), 0.5);
+
     }
 
     float3 unit_dir = normalize(r.dir);

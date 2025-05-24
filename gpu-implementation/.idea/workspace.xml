@@ -7,10 +7,13 @@
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a375a8b2-714e-49ed-841c-ae1b0c3a6cc0" name="Changes" comment="Red Sphere">
+    <list default="true" id="a375a8b2-714e-49ed-841c-ae1b0c3a6cc0" name="Changes" comment="Normalised Sphere">
+      <change afterPath="$PROJECT_DIR$/src/gui.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/cuda/floatN_helper.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda/floatN_helper.cu" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.lock" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.lock" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/Cargo.toml" beforeDir="false" afterPath="$PROJECT_DIR$/Cargo.toml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/cuda/kernel.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda/kernel.cu" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -128,7 +131,9 @@
       <workItem from="1746385794565" duration="462000" />
       <workItem from="1746386280392" duration="28130000" />
       <workItem from="1746981630903" duration="27118000" />
-      <workItem from="1747102802350" duration="11702000" />
+      <workItem from="1747102802350" duration="17241000" />
+      <workItem from="1747372793194" duration="3517000" />
+      <workItem from="1748112656545" duration="1750000" />
     </task>
     <task id="LOCAL-00001" summary="Moved Cpu to own folder and added a basic GPU implementation program">
       <option name="closed" value="true" />
@@ -186,7 +191,15 @@
       <option name="project" value="LOCAL" />
       <updated>1747163265862</updated>
     </task>
-    <option name="localTasksCounter" value="8" />
+    <task id="LOCAL-00008" summary="Normalised Sphere">
+      <option name="closed" value="true" />
+      <created>1747163703685</created>
+      <option name="number" value="00008" />
+      <option name="presentableId" value="LOCAL-00008" />
+      <option name="project" value="LOCAL" />
+      <updated>1747163703685</updated>
+    </task>
+    <option name="localTasksCounter" value="9" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -211,6 +224,7 @@
     <MESSAGE value="Starting to move to Cuda Library" />
     <MESSAGE value="Blue to white Gradient" />
     <MESSAGE value="Red Sphere" />
-    <option name="LAST_COMMIT_MESSAGE" value="Red Sphere" />
+    <MESSAGE value="Normalised Sphere" />
+    <option name="LAST_COMMIT_MESSAGE" value="Normalised Sphere" />
   </component>
 </project>

@@ -1,9 +1,11 @@
 #![deny(clippy::all)]
 
 mod ray_tracing;
+mod gui;
 
 use std::time::Instant;
 use crate::ray_tracing::{CudaWorld};
+use crate::gui::Framework;
 use error_iter::ErrorIter as _;
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
@@ -32,30 +34,23 @@ fn main() -> Result<(), Error> {
             .unwrap()
     };
 
-    let mut pixels = {
+    let (mut pixels, mut framework) = {
         let window_size = window.inner_size();
+        let scale_factor = window.scale_factor() as f32;
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        Pixels::new(camera.image_width, camera.image_height, surface_texture)?
+        let pixels = Pixels::new(camera.image_width, camera.image_height, surface_texture)?;
+        let framework = Framework::new(
+            &event_loop,
+            window_size.width,
+            window_size.height,
+            scale_factor,
+            &pixels,
+        );
+        (pixels, framework)
     };
 
     let mut cuda_world = CudaWorld::new(pixels.frame().len());
     let res = event_loop.run(|event, elwt| {
-        // Draw the current frame
-        if let Event::WindowEvent {
-            event: WindowEvent::RedrawRequested,
-            ..
-        } = event
-        {
-
-            let elapsed = Instant::now();
-            cuda_world.render(pixels.frame_mut(), &camera);
-            dbg!(elapsed.elapsed());
-            if let Err(err) = pixels.render() {
-                log_error("pixels.render", err);
-                elwt.exit();
-                return;
-            }
-        }
 
         // Handle input events
         if input.update(&event) {
@@ -72,11 +67,40 @@ fn main() -> Result<(), Error> {
                     elwt.exit();
                     return;
                 }
+                framework.resize(size.width, size.height);
             }
 
             // Update internal state and request a redraw
             window.request_redraw();
         }
+
+        match event {
+            Event::WindowEvent {
+                event: WindowEvent::RedrawRequested,
+                ..
+            } => {
+                let elapsed = Instant::now();
+                framework.prepare(&window);
+                cuda_world.render(pixels.frame_mut(), &camera);
+                dbg!(elapsed.elapsed());
+
+                let render_result = pixels.render_with(|encoder, render_target, context| {
+                    context.scaling_renderer.render(encoder, render_target);
+                    framework.render(encoder, render_target, context);
+                    Ok(())
+                });
+                if let Err(err) = render_result {
+                    log_error("pixels.render", err);
+                    elwt.exit();
+                    return;
+                }
+            },
+            Event::WindowEvent {event, ..} => {
+                framework.handle_event(&window, &event);
+            }
+            _ => ()
+        }
+
     });
     res.map_err(|e| Error::UserDefined(Box::new(e)))
 }
