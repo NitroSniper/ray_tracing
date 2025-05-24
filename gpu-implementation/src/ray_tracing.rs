@@ -107,9 +107,10 @@ impl Camera {
             center[2] - focal_length,
         ];
 
-        let pixel00_loc: [FloatSize; 3] = std::array::from_fn(|i| {
-            top_left_pixel[i] + pixel_delta[i] / 2.0
-        });
+        // let pixel00_loc: [FloatSize; 3] = std::array::from_fn(|i| {
+        //     top_left_pixel[i] + pixel_delta[i] / 2.0
+        // });
+        let pixel00_loc = top_left_pixel;
 
         Self {
             aspect_ratio,

@@ -17,13 +17,13 @@ use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 use crate::ray_tracing::cuda_types::Camera;
 
-const WIDTH: u32 = 400;
+const WIDTH: u32 = 800;
 const ASPECT_RATIO: f32 = 16.0 / 9.0;
 fn main() -> Result<(), Error> {
     env_logger::init();
     let event_loop = EventLoop::new().unwrap();
     let mut input = WinitInputHelper::new();
-    let camera = Camera::new(ASPECT_RATIO, WIDTH, 20);
+    let camera = Camera::new(ASPECT_RATIO, WIDTH, 8);
     let window = {
         let size = LogicalSize::new(WIDTH as f64, camera.image_height as f64);
         WindowBuilder::new()
