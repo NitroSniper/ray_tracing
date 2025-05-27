@@ -1,15 +1,38 @@
-__device__ float3 ray_color(const ray r) {
-    sphere s = {make_float3(0.0,0.0,-1.0), 0.5f};
-    hit_record record = s.hit(r, make_float2(0.001, 1024.0));
-    if (!record.is_none) {
-        float3 n = normalize(sub(ray_at(r, record.t), make_float3(0.0, 0.0, -1.0)));
-        return mul(make_float3(n.x+1.0, n.y+1.0,n.z+1.0), 0.5);
+__device__ float3 ray_color(ray r, hittable** world, size_t world_size) {
+//     sphere s = {make_float3(0.0,0.0,-1.0), 0.5f};
+//     hit_record record = s.hit(r, make_float2(0.001, 1024.0));
+    float3 color = make_float3(0.0f, 0.0f, 0.0f);
 
+
+    for (int depth = 10; depth >= 0; depth--) {
+        bool bounce = false;
+        for (int i = 0; i < world_size; world++) {
+            hittable* hit_object = world[i];
+            hit_record record = hit_object->hit(r, {0.001f, 1024.0f});
+            if (!record.is_none) {
+                light l = hit_object->mat->scatter(r, record);
+                r = l.ray;
+                color = mul(color, l.color);
+                bounce = true;
+                break;
+            }
+        }
+        if (bounce) continue;
+        float3 unit_dir = normalize(r.dir);
+        float a = (unit_dir.y + 1.0f) * 0.5f;
+        color = mul(color, add(mul(make_float3(1.0f, 1.0f, 1.0f), 1.0f-a), mul(make_float3(0.5f, 0.7f, 1.0f), a)));
+        break;
     }
+    return color;
 
-    float3 unit_dir = normalize(r.dir);
-    float a = (unit_dir.y + 1.0f) * 0.5f;
-    return add(mul(make_float3(1.0f, 1.0f, 1.0f), 1.0f-a), mul(make_float3(0.5f, 0.7f, 1.0f), a ));
+
+//     if (!record.is_none) {
+//         float3 n = normalize(sub(ray_at(r, record.t), make_float3(0.0, 0.0, -1.0)));
+//         return mul(make_float3(n.x+1.0, n.y+1.0,n.z+1.0), 0.5);
+//     }
+
+
+
 }
 
 __device__ ray get_ray(
@@ -51,8 +74,18 @@ extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, cons
 	pcg32_global = {rng_state[idx], 0};
     if (idx >= cam.image_width*cam.image_height) return;
 
-    if (gui.show_random) {
+    material*  material_ground = diffuse({0.8f, 0.8f, 0.0f});
+    material*  material_center = diffuse({0.1f, 0.2f, 0.5f});
+    material*  material_left   = reflect({0.8f, 0.8f, 0.8f});
+    material*  material_right  = reflect({0.8f, 0.6f, 0.2f});
 
+    hittable sphere_1 = sphere(make_float3( 0.0f, -100.5f, -1.0f), 100.0, &material_ground),
+    hittable sphere_2 = sphere(make_float3( 0.0f,    0.0f, -1.2f),   0.5, &material_center),
+    hittable sphere_3 = sphere(make_float3(-1.0f,    0.0f, -1.0f),   0.5, &material_left  ),
+    hittable sphere_4 = sphere(make_float3( 1.0f,    0.0f, -1.0f),   0.5, &material_right )
+    int world_size = 4;
+
+    if (gui.show_random) {
 	    float3 rgb = gui.random_norm ? random_norm_float3() : make_float3(
 	        ldexpf(pcg32_random_r(), -32),
             ldexpf(pcg32_random_r(), -32),
@@ -69,7 +102,7 @@ extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, cons
 
     float3 total = make_float3(0.0,0.0,0.0);
     for (int sample_idx = 0; sample_idx < cam.samples_per_pixel*cam.samples_per_pixel; sample_idx++) {
-        total = add(total, ray_color(get_ray(i, j, sample_idx, cam)));
+        total = add(total, ray_color(get_ray(i, j, sample_idx, cam), world, world_size));
     }
 
 

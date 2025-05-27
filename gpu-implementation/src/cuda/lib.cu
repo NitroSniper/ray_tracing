@@ -43,38 +43,58 @@ typedef struct {
 } camera;
 
 typedef struct {
+    float3 color;
+    ray ray;
+} light;
+
+typedef struct {
     bool is_none;
     float3 point, normal;
     float t;
     bool front_face;
 } hit_record;
 
-class hittable {
-    public:
-        __device__ virtual hit_record hit(ray r, float2 t) = 0;
-};
-
 class material{
     public:
-        __device__ virtual ray scatter(const ray in_r, const hit_record record, float3 color) = 0;
+        __device__ virtual light scatter(const ray in_r, const hit_record record) = 0;
 };
 
 class diffuse : public material {
-    float3 fcolor;
-    __device__ diffuse(float3 fcolor) : fcolor(fcolor) {}
-    __device__ ray scatter(const ray in_r, const hit_record record, float3 color) override {
-//         random_norm_float3(rng)
-
-        // random diffuse
-        ray r = {0.1, 0.1};
-        return r;
-    }
+    public:
+        float3 fcolor;
+        __device__ diffuse(float3 fcolor) : fcolor(fcolor) {}
+        __device__ light scatter(const ray in_r, const hit_record record) override {
+            float3 scatter_direction = add(record.normal, random_norm_float3());
+            scatter_direction = float3_near_zero_mag(scatter_direction) ? record.normal : scatter_direction;
+            light l = {fcolor, {record.point, scatter_direction}};
+            return l;
+        }
 };
+
+class reflect : public material {
+    public:
+        float3 fcolor;
+        __device__ reflect(float3 fcolor) : fcolor(fcolor) {}
+        __device__ light scatter(const ray in_r, const hit_record record) override {
+            float3 reflected = float3_reflect(in_r.dir, record.normal);
+            light l = {fcolor, {record.point, reflected}};
+            return l;
+        }
+};
+
+
+class hittable {
+    public:
+        material* mat;
+        __device__ hittable(material* m) : mat(m) {}
+        __device__ virtual hit_record hit(ray r, float2 t) = 0;
+};
+
 
 struct sphere : hittable {
     float3 center;
     float radius;
-    __device__ sphere(float3 c, float r) : center(c), radius(r) {}
+    __device__ sphere(float3 c, float r, material* m) : center(c), radius(r), hittable(m) {}
     __device__ hit_record hit(ray r, float2 t) override {
         hit_record record;
         record.is_none = true;

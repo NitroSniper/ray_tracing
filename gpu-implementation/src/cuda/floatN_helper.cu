@@ -107,10 +107,18 @@ __forceinline__ __device__ float dot(const float3 a, const float3 b) {
 __forceinline__ __device__ bool contains(const float2 a, const float b) {
     return a.x < b && a.y > b;
 }
+__forceinline__ __device__ bool float3_near_zero_mag(const float3 a) {
+    float s =  1e-8;
+    return fabsf(a.x) < s && fabsf(a.y) < s && fabsf(a.z) < s;
+}
 __forceinline__ __device__ float3 normalize(const float3 a) {
     return mul(a, rnorm3df(a.x, a.y, a.z));
 }
 
+__forceinline__ __device__ float3 float3_reflect(const float3 a, const float3 b) {
+    // a - b * 2 * dot(a, b)
+    return sub(a, mul(b, 2.0f * dot(a, b)));
+}
 
 __device__ float3 invert_if_dot(float3 a, const float3 b, bool is_negative) {
     float multiplier = is_negative ? -1.0 : 1.0;
