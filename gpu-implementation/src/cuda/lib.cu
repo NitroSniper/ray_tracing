@@ -54,48 +54,58 @@ typedef struct {
     bool front_face;
 } hit_record;
 
-class material{
-    public:
-        __device__ virtual light scatter(const ray in_r, const hit_record record) = 0;
+struct diffuse {
+     float3 fcolor;
+     __device__ diffuse(float3 fcolor) : fcolor(fcolor) {}
+     __device__ light scatter(const ray in_r, const hit_record record) {
+         float3 scatter_direction = add(record.normal, random_norm_float3());
+         scatter_direction = float3_near_zero_mag(scatter_direction) ? record.normal : scatter_direction;
+         light l = {fcolor, {record.point, scatter_direction}};
+         return l;
+     }
 };
 
-class diffuse : public material {
-    public:
-        float3 fcolor;
-        __device__ diffuse(float3 fcolor) : fcolor(fcolor) {}
-        __device__ light scatter(const ray in_r, const hit_record record) override {
-            float3 scatter_direction = add(record.normal, random_norm_float3());
-            scatter_direction = float3_near_zero_mag(scatter_direction) ? record.normal : scatter_direction;
-            light l = {fcolor, {record.point, scatter_direction}};
-            return l;
+struct reflect {
+     float3 fcolor;
+     __device__ reflect(float3 fcolor) : fcolor(fcolor) {}
+     __device__ light scatter(const ray in_r, const hit_record record) {
+         float3 reflected = float3_reflect(in_r.dir, record.normal);
+         light l = {fcolor, {record.point, reflected}};
+         return l;
+     }
+};
+
+
+enum material_type {DIFFUSE, REFLECT};
+
+struct material {
+    material_type type;
+
+    union {
+        diffuse diff;
+        reflect refl;
+    };
+
+    __device__ material(const diffuse d) : type(DIFFUSE), diff(d) {}
+    __device__ material(const reflect r) : type(REFLECT), refl(r) {}
+    __device__ light scatter(const ray in_r, const hit_record record) {
+        switch (type) {
+            case DIFFUSE:
+                return diff.scatter(in_r, record);
+            case REFLECT:
+                return refl.scatter(in_r, record);
         }
-};
-
-class reflect : public material {
-    public:
-        float3 fcolor;
-        __device__ reflect(float3 fcolor) : fcolor(fcolor) {}
-        __device__ light scatter(const ray in_r, const hit_record record) override {
-            float3 reflected = float3_reflect(in_r.dir, record.normal);
-            light l = {fcolor, {record.point, reflected}};
-            return l;
-        }
+        return light{};
+    }
 };
 
 
-class hittable {
-    public:
-        material* mat;
-        __device__ hittable(material* m) : mat(m) {}
-        __device__ virtual hit_record hit(ray r, float2 t) = 0;
-};
-
-
-struct sphere : hittable {
+struct sphere {
     float3 center;
     float radius;
-    __device__ sphere(float3 c, float r, material* m) : center(c), radius(r), hittable(m) {}
-    __device__ hit_record hit(ray r, float2 t) override {
+    material mat;
+    __device__ sphere(float3 c, float r, material m) : center(c), radius(r), mat(m) {}
+    __device__ hit_record hit(ray r, float2 t) {
         hit_record record;
         record.is_none = true;
         float3 oc = sub(center, r.orig);
@@ -125,5 +135,21 @@ struct sphere : hittable {
         // record.normal = div(sub(record.point, center), radius);
         record.normal = invert_if_dot(record.normal, r.dir, false);
         return record;
+    }
+};
+
+enum class HittableType {
+    SPHERE=1,
+};
+struct hittable {
+    HittableType type;
+    union {
+        sphere s;
+    };
+    __device__ hittable(const sphere& s) : type(HittableType::SPHERE), s(s) {}
+    __device__ hit_record hit(ray r, float2 t) {
+        switch (type) {
+            case HittableType::SPHERE: return s.hit(r, t);
+        }
     }
 };
