@@ -17,17 +17,17 @@ use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 use crate::ray_tracing::cuda_types::Camera;
 
-const WIDTH: u32 = 800;
+const WIDTH: u32 = 1024;
 const ASPECT_RATIO: f32 = 16.0 / 9.0;
 fn main() -> Result<(), Error> {
     env_logger::init();
+    let camera = Camera::new(ASPECT_RATIO, WIDTH, 8);
     let event_loop = EventLoop::new().unwrap();
     let mut input = WinitInputHelper::new();
-    let camera = Camera::new(ASPECT_RATIO, WIDTH, 8);
     let window = {
         let size = LogicalSize::new(WIDTH as f64, camera.image_height as f64);
         WindowBuilder::new()
-            .with_title("Hello Pixels")
+            .with_title("GPU Implementation")
             .with_inner_size(size)
             .with_min_inner_size(size)
             .build(&event_loop)

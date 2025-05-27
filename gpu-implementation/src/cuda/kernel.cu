@@ -1,6 +1,6 @@
 __device__ float3 ray_color(const ray r) {
     sphere s = {make_float3(0.0,0.0,-1.0), 0.5f};
-    hit_record record = hit_sphere(s, r, make_float2(0.001, 1024.0));
+    hit_record record = s.hit(r, make_float2(0.001, 1024.0));
     if (!record.is_none) {
         float3 n = normalize(sub(ray_at(r, record.t), make_float3(0.0, 0.0, -1.0)));
         return mul(make_float3(n.x+1.0, n.y+1.0,n.z+1.0), 0.5);
@@ -31,24 +31,33 @@ __device__ ray get_ray(
     return r;
 }
 
-extern "C" __global__ void render(float4 *const frame, const camera cam) {
+extern "C" __global__ void render(uint64_t *rng_state, float4 *const frame, const camera cam) {
 	unsigned int idx = 1024*blockIdx.x + threadIdx.x;
-	if (idx >= cam.image_width*cam.image_height) return;
+    if (idx >= cam.image_width*cam.image_height) return;
+    pcg32_random_t rng = {rng_state[idx], 0};
 
-	// Happy path
+//
+// 	// Happy path
+//
+// 	int i = idx % cam.image_width;
+// 	int j = idx / cam.image_width;
+//
+//     float3 total = make_float3(0.0,0.0,0.0);
+//     for (int sample_idx = 0; sample_idx < cam.samples_per_pixel*cam.samples_per_pixel; sample_idx++) {
+//         total = add(total, ray_color(get_ray(i, j, sample_idx, cam)));
+//     }
+//
+//
+//
+// 	// frame[idx] = make_float4(0.0f, (float)i / cam.image_width, (float)j / cam.image_height, 1.0);
+// 	frame[idx] = make_float4_f3(div(total, cam.samples_per_pixel*cam.samples_per_pixel), 1.0);
 
-	int i = idx % cam.image_width;
-	int j = idx / cam.image_width;
-
-    float3 total = make_float3(0.0,0.0,0.0);
-    for (int sample_idx = 0; sample_idx < cam.samples_per_pixel*cam.samples_per_pixel; sample_idx++) {
-        total = add(total, ray_color(get_ray(i, j, sample_idx, cam)));
-    }
-
-
-
-	// frame[idx] = make_float4(0.0f, (float)i / cam.image_width, (float)j / cam.image_height, 1.0);
-	frame[idx] = make_float4_f3(div(total, cam.samples_per_pixel*cam.samples_per_pixel), 1.0);
+    float3 foo = make_float3(
+        ldexpf(pcg32_random_r(&rng), -32),
+        ldexpf(pcg32_random_r(&rng), -32),
+        ldexpf(pcg32_random_r(&rng), -32)
+    );
+    frame[idx] = make_float4_f3(foo, 1.0f);
 	frame[idx] = mul(frame[idx], 255.0f);
 }
 

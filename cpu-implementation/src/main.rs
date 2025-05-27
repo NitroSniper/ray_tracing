@@ -14,8 +14,8 @@ use winit::{
 use winit_input_helper::WinitInputHelper;
 
 static ASPECT_RATIO: f64 = 16.0 / 9.0;
-static IMAGE_WIDTH: u32 = 400;
-static SAMPLES: u32 = 100;
+static IMAGE_WIDTH: u32 = 256;
+static SAMPLES: u32 = 64;
 static MAX_DEPTH: u32 = 20;
 
 fn main() {
@@ -36,7 +36,7 @@ fn main() {
     let window = {
         let size = LogicalSize::new(camera.image_width as u32, camera.image_height as u32);
         WindowBuilder::new()
-            .with_title("Hell")
+            .with_title("CPU Implementation")
             .with_inner_size(size)
             .with_min_inner_size(size)
             .build(&event_loop)
@@ -61,7 +61,7 @@ fn main() {
             // Calculation
             let now = Instant::now();
             camera.render(pixels.frame_mut(), &world, MAX_DEPTH);
-            info!("Calculation took {:?}", now.elapsed());
+            println!("Calculation took {:?}", now.elapsed());
             pixels.render().unwrap();
             window.request_redraw();
         }

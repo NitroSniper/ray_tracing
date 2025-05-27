@@ -1,5 +1,6 @@
-use cudarc::driver::{CudaContext, CudaFunction, CudaModule, CudaSlice, LaunchConfig, PushKernelArg};
+use cudarc::driver::{CudaContext, CudaFunction, CudaModule, CudaSlice, LaunchConfig, Profiler, PushKernelArg};
 use std::sync::Arc;
+use cudarc::curand::CudaRng;
 
 pub mod cuda_types {
     use cudarc::driver::DeviceRepr;
@@ -33,6 +34,8 @@ pub struct CudaWorld {
     module: Arc<CudaModule>,
     render: CudaFunction,
     d_frame: CudaSlice<FloatSize>,
+    rng_block: CudaSlice<u32>,
+    rng: CudaRng,
 }
 
 const PTX_SRC: &str = concat!(include_str!("cuda/floatN_helper.cu"), include_str!("cuda/lib.cu"), include_str!("cuda/kernel.cu"));
@@ -42,6 +45,7 @@ impl CudaWorld {
         dbg!(PTX_SRC);
         let ctx = cudarc::driver::CudaContext::new(0).expect("Failed to create CudaContext");
         let stream = ctx.default_stream();
+        let rng = CudaRng::new(0, stream.clone()).expect("Failed to create CudaRng");
         let ptx = cudarc::nvrtc::compile_ptx(PTX_SRC).unwrap_or_else(|err| {
             use cudarc::nvrtc::CompileError;
             match err {
@@ -52,22 +56,24 @@ impl CudaWorld {
 
         let module = ctx.load_module(ptx).expect("Failed to load PTX");
         let render = module.load_function("render").expect("Failed to load render function");
-
+        let rng_block = stream.alloc_zeros::<u32>(frame_size).expect("Failed to allocate frame buffer on device");
         let d_frame = stream.alloc_zeros::<FloatSize>(frame_size).expect("Failed to allocate frame buffer on device");
 
         Self {
             ctx,
             module,
             render,
-            d_frame
+            d_frame,
+            rng_block,
+            rng
         }
     }
 
     pub fn render(&mut self, frame: &mut [u8], camera: &Camera) {
         let stream = self.ctx.default_stream();
         let mut binding = stream.launch_builder(&self.render);
-        let builder = binding.arg(&mut self.d_frame).arg(camera);
-
+        self.rng.fill_with_uniform(&mut self.rng_block).expect("Failed to fill rng block");
+        let builder = binding.arg(&self.rng_block).arg(&mut self.d_frame).arg(camera);
         unsafe {
             builder.launch(LaunchConfig::for_num_elems(camera.image_width * camera.image_height))
         }.expect("Failed to launch kernel");

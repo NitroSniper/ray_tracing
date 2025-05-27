@@ -4,7 +4,7 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-cudarc = {version = "0.16.3", features = ["cuda-12080"]}
+cudarc = {version = "0.16.3", features = ["cuda-12080", "curand"]}
 
 
 # Graphics stuff
