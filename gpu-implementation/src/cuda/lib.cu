@@ -15,18 +15,17 @@ __device__ uint64_t pcg32_random_r(pcg32_random_t* rng)
 }
 // ldexpf(pcg32_random_r(&rng), -32);
 
-// __device__ float3 random_norm_float3(curandState state) {
-//     for (int i = 0; i < 10; i++) {
-//         float3 p = make_float3(
-//             ,
-//             curand_uniform(state),
-//             curand_uniform(state)
-//         );
-//
-//         if dot(p, p) <= 1.0 return normalize(p);
-//     }
-//     return make_float3(1.0, 0.0, 0.0);
-// }
+__device__ float3 random_norm_float3(pcg32_random_t* rng) {
+    for (int i = 0; i < 10; i++) {
+        float3 p = make_float3(
+            ldexpf(pcg32_random_r(rng), -32),
+            ldexpf(pcg32_random_r(rng), -32),
+            ldexpf(pcg32_random_r(rng), -32)
+        );
+        if (dot(p, p) <= 1.0) return normalize(p);
+    }
+    return make_float3(1.0, 0.0, 0.0);
+}
 
 typedef struct {
     float3 orig, dir;

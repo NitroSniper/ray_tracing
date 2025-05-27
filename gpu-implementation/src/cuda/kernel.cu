@@ -52,11 +52,7 @@ extern "C" __global__ void render(uint64_t *rng_state, float4 *const frame, cons
 // 	// frame[idx] = make_float4(0.0f, (float)i / cam.image_width, (float)j / cam.image_height, 1.0);
 // 	frame[idx] = make_float4_f3(div(total, cam.samples_per_pixel*cam.samples_per_pixel), 1.0);
 
-    float3 foo = make_float3(
-        ldexpf(pcg32_random_r(&rng), -32),
-        ldexpf(pcg32_random_r(&rng), -32),
-        ldexpf(pcg32_random_r(&rng), -32)
-    );
+    float3 foo = random_norm_float3(&rng);
     frame[idx] = make_float4_f3(foo, 1.0f);
 	frame[idx] = mul(frame[idx], 255.0f);
 }
