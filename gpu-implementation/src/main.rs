@@ -49,7 +49,7 @@ fn main() -> Result<(), Error> {
         (pixels, framework)
     };
 
-    let mut cuda_world = CudaWorld::new(pixels.frame().len());
+    let mut cuda_world = CudaWorld::new(pixels.frame().len(), framework.gui.clone());
     let res = event_loop.run(|event, elwt| {
 
         // Handle input events
@@ -64,8 +64,6 @@ fn main() -> Result<(), Error> {
             if let Some(size) = input.window_resized() {
                 if let Err(err) = pixels.resize_surface(size.width, size.height) {
                     log_error("pixels.resize_surface", err);
-                    elwt.exit();
-                    return;
                 }
                 framework.resize(size.width, size.height);
             }

@@ -1,3 +1,5 @@
+use std::rc::Rc;
+use std::sync::{Arc, RwLock};
 use egui::{ClippedPrimitive, Context, TexturesDelta, ViewportId};
 use egui_wgpu::{Renderer, ScreenDescriptor};
 use pixels::{wgpu, PixelsContext};
@@ -15,13 +17,15 @@ pub(crate) struct Framework {
     textures: TexturesDelta,
 
     // State for the GUI
-    gui: Gui,
+    pub gui: Rc<RwLock<Gui>>,
 }
 
 /// Example application state. A real application will need a lot more state than this.
-struct Gui {
+pub struct Gui {
     /// Only show the egui window when true.
     window_open: bool,
+    // When random button is pressed
+    pub random: bool,
 }
 
 impl Framework {
@@ -49,7 +53,7 @@ impl Framework {
         };
         let renderer = Renderer::new(pixels.device(), pixels.render_texture_format(), None, 1);
         let textures = TexturesDelta::default();
-        let gui = Gui::new();
+        let gui = Rc::new(RwLock::new(Gui::new()));
 
         Self {
             egui_ctx,
@@ -85,7 +89,8 @@ impl Framework {
         let raw_input = self.egui_state.take_egui_input(window);
         let output = self.egui_ctx.run(raw_input, |egui_ctx| {
             // Draw the demo application.
-            self.gui.ui(egui_ctx);
+            let mut gui = self.gui.write().expect("Gui cannot be read");
+            gui.ui(egui_ctx);
         });
 
         self.textures.append(output.textures_delta);
@@ -148,7 +153,7 @@ impl Framework {
 impl Gui {
     /// Create a `Gui`.
     fn new() -> Self {
-        Self { window_open: true }
+        Self { window_open: true, random: false }
     }
 
     /// Create the UI using egui.
@@ -156,7 +161,7 @@ impl Gui {
         egui::TopBottomPanel::top("menubar_container").show(ctx, |ui| {
             egui::menu::bar(ui, |ui| {
                 ui.menu_button("File", |ui| {
-                    if ui.button("About...").clicked() {
+                    if ui.button("Debug").clicked() {
                         self.window_open = true;
                         ui.close_menu();
                     }
@@ -164,19 +169,24 @@ impl Gui {
             });
         });
 
-        egui::Window::new("Hello, egui!")
+        egui::Window::new("Debug Menu")
             .open(&mut self.window_open)
             .show(ctx, |ui| {
-                ui.label("This example demonstrates using egui with pixels.");
-                ui.label("Made with 💖 in San Francisco!");
+                ui.label("This is the debug menu for the ray tracer.");
 
                 ui.separator();
-
-                ui.horizontal(|ui| {
-                    ui.spacing_mut().item_spacing.x /= 2.0;
-                    ui.label("Learn more about egui at");
-                    ui.hyperlink("https://docs.rs/egui");
-                });
+                ui.label("Global Changes");
+                if ui.button("New Random State").clicked() {
+                    self.random = true;
+                }
+                // ui.horizontal(|ui| {
+                //     ui.spacing_mut().item_spacing.x /= 2.0;
+                //     ui.label("Learn more about egui at");
+                //     ui.hyperlink("https://docs.rs/egui");
+                //     if ui.button("Hello").clicked() {
+                //         println!("Clicked Idk");
+                //     }
+                // });
             });
     }
 }

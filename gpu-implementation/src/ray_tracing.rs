@@ -1,5 +1,6 @@
+use std::rc::Rc;
 use cudarc::driver::{CudaContext, CudaFunction, CudaModule, CudaSlice, LaunchConfig, Profiler, PushKernelArg};
-use std::sync::Arc;
+use std::sync::{Arc, RwLock};
 use cudarc::curand::CudaRng;
 
 pub mod cuda_types {
@@ -27,7 +28,7 @@ pub mod cuda_types {
 
 use cuda_types::Camera;
 use cuda_types::FloatSize;
-
+use crate::gui::Gui;
 
 pub struct CudaWorld {
     ctx: Arc<CudaContext>,
@@ -36,12 +37,13 @@ pub struct CudaWorld {
     d_frame: CudaSlice<FloatSize>,
     rng_block: CudaSlice<u32>,
     rng: CudaRng,
+    gui: Rc<RwLock<Gui>>
 }
 
 const PTX_SRC: &str = concat!(include_str!("cuda/floatN_helper.cu"), include_str!("cuda/lib.cu"), include_str!("cuda/kernel.cu"));
 
 impl CudaWorld {
-    pub fn new(frame_size: usize) -> Self {
+    pub fn new(frame_size: usize, gui: Rc<RwLock<Gui>>) -> Self {
         dbg!(PTX_SRC);
         let ctx = cudarc::driver::CudaContext::new(0).expect("Failed to create CudaContext");
         let stream = ctx.default_stream();
@@ -56,7 +58,8 @@ impl CudaWorld {
 
         let module = ctx.load_module(ptx).expect("Failed to load PTX");
         let render = module.load_function("render").expect("Failed to load render function");
-        let rng_block = stream.alloc_zeros::<u32>(frame_size).expect("Failed to allocate frame buffer on device");
+        let mut rng_block = stream.alloc_zeros::<u32>(frame_size).expect("Failed to allocate frame buffer on device");
+        rng.fill_with_uniform(&mut rng_block).expect("Failed to fill rng block");
         let d_frame = stream.alloc_zeros::<FloatSize>(frame_size).expect("Failed to allocate frame buffer on device");
 
         Self {
@@ -65,14 +68,18 @@ impl CudaWorld {
             render,
             d_frame,
             rng_block,
-            rng
+            rng,
+            gui,
         }
     }
 
     pub fn render(&mut self, frame: &mut [u8], camera: &Camera) {
         let stream = self.ctx.default_stream();
         let mut binding = stream.launch_builder(&self.render);
-        self.rng.fill_with_uniform(&mut self.rng_block).expect("Failed to fill rng block");
+        if self.gui.read().expect("Gui can't be read").random {
+            self.rng.fill_with_uniform(&mut self.rng_block).expect("Failed to fill rng block");
+            self.gui.write().expect("Gui can't be written").random = false;
+        };
         let builder = binding.arg(&self.rng_block).arg(&mut self.d_frame).arg(camera);
         unsafe {
             builder.launch(LaunchConfig::for_num_elems(camera.image_width * camera.image_height))
