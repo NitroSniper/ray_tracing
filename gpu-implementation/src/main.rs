@@ -48,8 +48,8 @@ fn main() -> Result<(), Error> {
         );
         (pixels, framework)
     };
-
-    let mut cuda_world = CudaWorld::new(pixels.frame().len(), framework.gui.clone());
+    let gui = framework.gui.clone();
+    let mut cuda_world = CudaWorld::new(pixels.frame().len(), gui.clone());
     let res = event_loop.run(|event, elwt| {
 
         // Handle input events
@@ -59,6 +59,7 @@ fn main() -> Result<(), Error> {
                 elwt.exit();
                 return;
             }
+
 
             // Resize the window
             if let Some(size) = input.window_resized() {
@@ -77,11 +78,10 @@ fn main() -> Result<(), Error> {
                 event: WindowEvent::RedrawRequested,
                 ..
             } => {
-                let elapsed = Instant::now();
                 framework.prepare(&window);
+                let start = Instant::now();
                 cuda_world.render(pixels.frame_mut(), &camera);
-                dbg!(elapsed.elapsed());
-
+                let cuda_render_ms = start.elapsed();
                 let render_result = pixels.render_with(|encoder, render_target, context| {
                     context.scaling_renderer.render(encoder, render_target);
                     framework.render(encoder, render_target, context);
@@ -91,6 +91,11 @@ fn main() -> Result<(), Error> {
                     log_error("pixels.render", err);
                     elwt.exit();
                     return;
+                }
+                let total_render_ms = start.elapsed();
+                if !input.key_held(KeyCode::AltLeft) {
+                    gui.write().expect("RwLock write fail").total_render_ms = total_render_ms;
+                    gui.write().expect("RwLock write fail").cuda_render_ms = cuda_render_ms;
                 }
             },
             Event::WindowEvent {event, ..} => {

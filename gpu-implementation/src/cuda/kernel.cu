@@ -45,23 +45,22 @@ extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, cons
 	unsigned int idx = 1024*blockIdx.x + threadIdx.x;
     if (idx >= cam.image_width*cam.image_height) return;
     pcg32_random_t rng = {rng_state[idx], 0};
-    float3 rgb = random_norm_float3(&rng);
 
-//
-// 	// Happy path
-//
-// 	int i = idx % cam.image_width;
-// 	int j = idx / cam.image_width;
-//
-//     float3 total = make_float3(0.0,0.0,0.0);
-//     for (int sample_idx = 0; sample_idx < cam.samples_per_pixel*cam.samples_per_pixel; sample_idx++) {
-//         total = add(total, ray_color(get_ray(i, j, sample_idx, cam)));
-//     }
-//
-//
-//
-// 	// frame[idx] = make_float4(0.0f, (float)i / cam.image_width, (float)j / cam.image_height, 1.0);
-// 	frame[idx] = make_float4_f3(div(total, cam.samples_per_pixel*cam.samples_per_pixel), 1.0);
+
+	// Happy path
+
+	int i = idx % cam.image_width;
+	int j = idx / cam.image_width;
+
+    float3 total = make_float3(0.0,0.0,0.0);
+    for (int sample_idx = 0; sample_idx < cam.samples_per_pixel*cam.samples_per_pixel; sample_idx++) {
+        total = add(total, ray_color(get_ray(i, j, sample_idx, cam)));
+    }
+
+
+
+	// frame[idx] = make_float4(0.0f, (float)i / cam.image_width, (float)j / cam.image_height, 1.0);
+	float3 rgb = div(total, cam.samples_per_pixel*cam.samples_per_pixel);
 
 	frame[idx] = to_pixel(make_float4_f3(rgb, 1.0f));
 }

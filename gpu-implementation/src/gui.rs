@@ -1,5 +1,6 @@
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
+use std::time::Duration;
 use egui::{ClippedPrimitive, Context, TexturesDelta, ViewportId};
 use egui_wgpu::{Renderer, ScreenDescriptor};
 use pixels::{wgpu, PixelsContext};
@@ -18,14 +19,6 @@ pub(crate) struct Framework {
 
     // State for the GUI
     pub gui: Rc<RwLock<Gui>>,
-}
-
-/// Example application state. A real application will need a lot more state than this.
-pub struct Gui {
-    /// Only show the egui window when true.
-    window_open: bool,
-    // When random button is pressed
-    pub random: bool,
 }
 
 impl Framework {
@@ -150,10 +143,20 @@ impl Framework {
     }
 }
 
+/// Example application state. A real application will need a lot more state than this.
+pub struct Gui {
+    /// Only show the egui window when true.
+    window_open: bool,
+    // When random button is pressed
+    pub random: bool,
+    pub total_render_ms: Duration,
+    pub cuda_render_ms: Duration,
+}
+
 impl Gui {
     /// Create a `Gui`.
     fn new() -> Self {
-        Self { window_open: true, random: false }
+        Self { window_open: true, random: false, total_render_ms: Duration::new(0, 0), cuda_render_ms: Duration::new(0, 0) }
     }
 
     /// Create the UI using egui.
@@ -173,9 +176,15 @@ impl Gui {
             .open(&mut self.window_open)
             .show(ctx, |ui| {
                 ui.label("This is the debug menu for the ray tracer.");
+                ui.separator();
+                ui.heading("Statistic");
+                ui.label("Hold `LeftAlt` down to pause statistic");
+                ui.add_space(12.0);
+                ui.label(format!("Total Render Duration: {:?}", self.total_render_ms));
+                ui.label(format!("Total Cuda Render Duration: {:?}", self.cuda_render_ms));
 
                 ui.separator();
-                ui.label("Global Changes");
+                ui.heading("Options");
                 if ui.button("New Random State").clicked() {
                     self.random = true;
                 }
