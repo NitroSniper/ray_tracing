@@ -34,7 +34,7 @@ pub struct CudaWorld {
     ctx: Arc<CudaContext>,
     module: Arc<CudaModule>,
     render: CudaFunction,
-    d_frame: CudaSlice<FloatSize>,
+    d_frame: CudaSlice<u8>,
     rng_block: CudaSlice<u32>,
     rng: CudaRng,
     gui: Rc<RwLock<Gui>>
@@ -60,7 +60,7 @@ impl CudaWorld {
         let render = module.load_function("render").expect("Failed to load render function");
         let mut rng_block = stream.alloc_zeros::<u32>(frame_size).expect("Failed to allocate frame buffer on device");
         rng.fill_with_uniform(&mut rng_block).expect("Failed to fill rng block");
-        let d_frame = stream.alloc_zeros::<FloatSize>(frame_size).expect("Failed to allocate frame buffer on device");
+        let d_frame = stream.alloc_zeros::<u8>(frame_size).expect("Failed to allocate frame buffer on device");
 
         Self {
             ctx,
@@ -85,10 +85,7 @@ impl CudaWorld {
             builder.launch(LaunchConfig::for_num_elems(camera.image_width * camera.image_height))
         }.expect("Failed to launch kernel");
 
-        let float_frames = stream.memcpy_dtov(&self.d_frame).expect("Failed to copy device frames");
-        frame.iter_mut().zip(float_frames.iter()).for_each(|(dst, src)| {
-            *dst = src.clamp(0.0, 255.0) as u8;
-        });
+        stream.memcpy_dtoh(&self.d_frame, frame).expect("Failed to copy device frames");
     }
 }
 

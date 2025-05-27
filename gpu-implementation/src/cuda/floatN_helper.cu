@@ -99,6 +99,7 @@ __forceinline__ __device__ float4 make_float4_f3(const float3 a, const float w) 
     return make_float4(a.x, a.y, a.z, w);
 }
 
+
 __forceinline__ __device__ float dot(const float3 a, const float3 b) {
     return a.x*b.x + a.y*b.y + a.z*b.z;
 }

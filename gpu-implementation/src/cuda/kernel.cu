@@ -31,10 +31,21 @@ __device__ ray get_ray(
     return r;
 }
 
-extern "C" __global__ void render(uint64_t *rng_state, float4 *const frame, const camera cam) {
+__device__ uchar4 to_pixel(float4 fpixel) {
+    uchar4 c = make_uchar4(
+        (unsigned char)(fmaxf(0.0f, fminf(fpixel.x * 255.0f, 255.0f))),
+        (unsigned char)(fmaxf(0.0f, fminf(fpixel.y * 255.0f, 255.0f))),
+        (unsigned char)(fmaxf(0.0f, fminf(fpixel.z * 255.0f, 255.0f))),
+        (unsigned char)(fmaxf(0.0f, fminf(fpixel.w * 255.0f, 255.0f)))
+    );
+    return c;
+}
+
+extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, const camera cam) {
 	unsigned int idx = 1024*blockIdx.x + threadIdx.x;
     if (idx >= cam.image_width*cam.image_height) return;
     pcg32_random_t rng = {rng_state[idx], 0};
+    float3 rgb = random_norm_float3(&rng);
 
 //
 // 	// Happy path
@@ -52,8 +63,6 @@ extern "C" __global__ void render(uint64_t *rng_state, float4 *const frame, cons
 // 	// frame[idx] = make_float4(0.0f, (float)i / cam.image_width, (float)j / cam.image_height, 1.0);
 // 	frame[idx] = make_float4_f3(div(total, cam.samples_per_pixel*cam.samples_per_pixel), 1.0);
 
-    float3 foo = random_norm_float3(&rng);
-    frame[idx] = make_float4_f3(foo, 1.0f);
-	frame[idx] = mul(frame[idx], 255.0f);
+	frame[idx] = to_pixel(make_float4_f3(rgb, 1.0f));
 }
 
