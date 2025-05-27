@@ -1,4 +1,4 @@
-__device__ float3 ray_color(ray r, sphere s) {
+__device__ float3 ray_color(ray r, sphere* world, int world_size) {
 //     sphere s = {make_float3(0.0,0.0,-1.0), 0.5f};
 //     hit_record record = s.hit(r, make_float2(0.001, 1024.0));
     float3 color = make_float3(1.0f, 1.0f, 1.0f);
@@ -6,12 +6,16 @@ __device__ float3 ray_color(ray r, sphere s) {
 
     for (int depth = 10; depth >= 0; depth--) {
         bool bounce = false;
-        hit_record record = s.hit(r, {0.001f, 1024.0f});
-        if (!record.is_none) {
-            light l = s.mat.scatter(r, record);
-            r = l.ray;
-            color = mul(color, l.color);
-            bounce = true;
+        for (int i = 0; i < world_size; i++) {
+            sphere s = world[i];
+            hit_record record = s.hit(r, {0.001f, 1024.0f});
+            if (!record.is_none) {
+                light l = s.mat.scatter(r, record);
+                r = l.ray;
+                color = mul(color, l.color);
+                bounce = true;
+                break;
+            }
         }
         if (bounce) continue;
         float3 unit_dir = normalize(r.dir);
@@ -71,16 +75,18 @@ extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, cons
     if (idx >= cam.image_width*cam.image_height) return;
 
     material material_ground = diffuse({0.8f, 0.8f, 0.0f});
-//     material material_center = material(diffuse({0.1f, 0.2f, 0.5f}));
-//     material material_left   = material(reflect({0.8f, 0.8f, 0.8f}));
-//     material material_right  = material(reflect({0.8f, 0.6f, 0.2f}));
-    sphere s = sphere(make_float3( 0.0f, -100.5f, -1.0f), 100.0, material_ground);
-    sphere world[1] = { s };
-//     hittable(sphere(make_float3( 0.0f,    0.0f, -1.2f),   0.5), material_center),
+    material material_center = diffuse({0.1f, 0.2f, 0.5f});
+    material material_left   = reflect({0.8f, 0.8f, 0.8f});
+    material material_right  = reflect({0.8f, 0.6f, 0.2f});
+    sphere s =    sphere(make_float3( 0.0f, -100.5f, -1.0f), 100.0, material_ground);
+    sphere foo =  sphere(make_float3( 0.0f,    0.0f, -1.2f),   0.5, material_center);
+    sphere fizz = sphere(make_float3(-1.0f,    0.0f, -1.0f),   0.5, material_left);
+    sphere bazz = sphere(make_float3( 1.0f,    0.0f, -1.0f),   0.5, material_right);
+    const int world_size = 4;
+    sphere world[world_size] = { s, foo, fizz, bazz };
 //     hittable(sphere(make_float3(-1.0f,    0.0f, -1.0f),   0.5), material_left  ),
 //     hittable(sphere(make_float3( 1.0f,    0.0f, -1.0f),   0.5), material_right )};
 
-    int world_size = 1;
 
     if (gui.show_random) {
 	    float3 rgb = gui.random_norm ? random_norm_float3() : make_float3(
@@ -104,7 +110,7 @@ extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, cons
 //         rgb = {1.0f, 1.0f, 0.0f};
 //     }
     for (int sample_idx = 0; sample_idx < cam.samples_per_pixel*cam.samples_per_pixel; sample_idx++) {
-        total = add(total, ray_color(get_ray(i, j, sample_idx, cam), s));
+        total = add(total, ray_color(get_ray(i, j, sample_idx, cam), world, world_size));
     }
 
 

@@ -28,13 +28,12 @@ __device__ float3 random_norm_float3() {
 }
 
 
-typedef struct {
+struct ray {
     float3 orig, dir;
-} ray;
-
-__device__ float3 ray_at(ray r, float lambda) {
-    return add(r.orig, mul(r.dir, lambda));
-}
+    __device__ float3 at(float lambda) {
+        return add(orig, mul(dir, lambda));
+    }
+};
 
 typedef struct {
     float aspect_ratio;
@@ -130,7 +129,7 @@ struct sphere {
 
         record.is_none = false;
         record.t = root;
-        record.point = ray_at(r,root);
+        record.point = r.at(root);
         record.normal = div(sub(record.point, center), radius);
         // record.normal = div(sub(record.point, center), radius);
         record.normal = invert_if_dot(record.normal, r.dir, false);
