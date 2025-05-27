@@ -41,11 +41,26 @@ __device__ uchar4 to_pixel(float4 fpixel) {
     return c;
 }
 
-extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, const camera cam) {
-	unsigned int idx = 1024*blockIdx.x + threadIdx.x;
-    if (idx >= cam.image_width*cam.image_height) return;
-    pcg32_random_t rng = {rng_state[idx], 0};
+typedef struct {
+    bool show_random;
+    bool random_norm;
+} gui_state;
 
+extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, const camera cam, const gui_state gui) {
+	unsigned int idx = 1024*blockIdx.x + threadIdx.x;
+	pcg32_global = {rng_state[idx], 0};
+    if (idx >= cam.image_width*cam.image_height) return;
+
+    if (gui.show_random) {
+
+	    float3 rgb = gui.random_norm ? random_norm_float3() : make_float3(
+	        ldexpf(pcg32_random_r(), -32),
+            ldexpf(pcg32_random_r(), -32),
+            ldexpf(pcg32_random_r(), -32)
+	    );
+	    frame[idx] = to_pixel(make_float4_f3(rgb, 1.0f));
+	    return;
+    }
 
 	// Happy path
 
@@ -60,8 +75,8 @@ extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, cons
 
 
 	// frame[idx] = make_float4(0.0f, (float)i / cam.image_width, (float)j / cam.image_height, 1.0);
-	float3 rgb = div(total, cam.samples_per_pixel*cam.samples_per_pixel);
+    float3 rgb = div(total, cam.samples_per_pixel*cam.samples_per_pixel);
+    frame[idx] = to_pixel(make_float4_f3(rgb, 1.0f));
 
-	frame[idx] = to_pixel(make_float4_f3(rgb, 1.0f));
 }
 

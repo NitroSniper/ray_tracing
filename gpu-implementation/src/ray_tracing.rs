@@ -23,7 +23,19 @@ pub mod cuda_types {
         pub pixel00_loc: [FloatSize; 3],
         pub pixel_delta: [FloatSize; 3],
     }
+
+    pub struct DeviceGUI {
+        pub show_random: bool,
+        pub random_norm: bool,
+    }
+
+    impl Default for DeviceGUI {
+        fn default() -> Self {
+            Self { show_random: false, random_norm: false }
+        }
+    }
     unsafe impl DeviceRepr for Camera {}
+    unsafe impl DeviceRepr for DeviceGUI {}
 }
 
 use cuda_types::Camera;
@@ -44,7 +56,6 @@ const PTX_SRC: &str = concat!(include_str!("cuda/floatN_helper.cu"), include_str
 
 impl CudaWorld {
     pub fn new(frame_size: usize, gui: Rc<RwLock<Gui>>) -> Self {
-        dbg!(PTX_SRC);
         let ctx = cudarc::driver::CudaContext::new(0).expect("Failed to create CudaContext");
         let stream = ctx.default_stream();
         let rng = CudaRng::new(0, stream.clone()).expect("Failed to create CudaRng");
@@ -80,10 +91,14 @@ impl CudaWorld {
             self.rng.fill_with_uniform(&mut self.rng_block).expect("Failed to fill rng block");
             self.gui.write().expect("Gui can't be written").random = false;
         };
-        let builder = binding.arg(&self.rng_block).arg(&mut self.d_frame).arg(camera);
-        unsafe {
-            builder.launch(LaunchConfig::for_num_elems(camera.image_width * camera.image_height))
-        }.expect("Failed to launch kernel");
+
+        {
+            let gui = self.gui.read().expect("Gui can't be read");
+            let builder = binding.arg(&self.rng_block).arg(&mut self.d_frame).arg(camera).arg(&gui.device_gui);
+            unsafe {
+                builder.launch(LaunchConfig::for_num_elems(camera.image_width * camera.image_height))
+            }.expect("Failed to launch kernel");
+        };
 
         stream.memcpy_dtoh(&self.d_frame, frame).expect("Failed to copy device frames");
     }

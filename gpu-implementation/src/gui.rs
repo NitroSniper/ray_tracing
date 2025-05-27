@@ -6,6 +6,7 @@ use egui_wgpu::{Renderer, ScreenDescriptor};
 use pixels::{wgpu, PixelsContext};
 use winit::event_loop::EventLoopWindowTarget;
 use winit::window::Window;
+use crate::ray_tracing::cuda_types::DeviceGUI;
 
 /// Manages all state required for rendering egui over `Pixels`.
 pub(crate) struct Framework {
@@ -151,12 +152,13 @@ pub struct Gui {
     pub random: bool,
     pub total_render_ms: Duration,
     pub cuda_render_ms: Duration,
+    pub device_gui: DeviceGUI
 }
 
 impl Gui {
     /// Create a `Gui`.
     fn new() -> Self {
-        Self { window_open: true, random: false, total_render_ms: Duration::new(0, 0), cuda_render_ms: Duration::new(0, 0) }
+        Self { window_open: true, random: false, total_render_ms: Duration::new(0, 0), cuda_render_ms: Duration::new(0, 0), device_gui: Default::default() }
     }
 
     /// Create the UI using egui.
@@ -185,7 +187,9 @@ impl Gui {
 
                 ui.separator();
                 ui.heading("Options");
-                if ui.button("New Random State").clicked() {
+                ui.checkbox(&mut self.device_gui.show_random, "Show Random State?");
+                ui.checkbox(&mut self.device_gui.random_norm, "Normalise Random State?");
+                if ui.button("Generate New Random State").clicked() {
                     self.random = true;
                 }
                 // ui.horizontal(|ui| {

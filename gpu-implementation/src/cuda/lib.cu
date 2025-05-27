@@ -3,29 +3,30 @@
 using uint64_t = unsigned long long;
 using uint32_t = unsigned int;
 typedef struct { uint64_t state;  uint64_t inc; } pcg32_random_t;
-__device__ uint64_t pcg32_random_r(pcg32_random_t* rng)
+__device__ static pcg32_random_t pcg32_global;
+__device__ uint64_t pcg32_random_r()
 {
-    uint64_t oldstate = rng->state;
+    uint64_t oldstate = pcg32_global.state;
     // Advance internal state
-    rng->state = oldstate * 6364136223846793005ULL + (rng->inc|1);
+    pcg32_global.state = oldstate * 6364136223846793005ULL + (pcg32_global.inc|1);
     // Calculate output function (XSH RR), uses old state for max ILP
     uint32_t xorshifted = ((oldstate >> 18u) ^ oldstate) >> 27u;
     uint32_t rot = oldstate >> 59u;
     return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
 }
-// ldexpf(pcg32_random_r(&rng), -32);
 
-__device__ float3 random_norm_float3(pcg32_random_t* rng) {
+__device__ float3 random_norm_float3() {
     for (int i = 0; i < 10; i++) {
         float3 p = make_float3(
-            ldexpf(pcg32_random_r(rng), -32),
-            ldexpf(pcg32_random_r(rng), -32),
-            ldexpf(pcg32_random_r(rng), -32)
+            ldexpf(pcg32_random_r(), -32),
+            ldexpf(pcg32_random_r(), -32),
+            ldexpf(pcg32_random_r(), -32)
         );
         if (dot(p, p) <= 1.0) return normalize(p);
     }
     return make_float3(1.0, 0.0, 0.0);
 }
+
 
 typedef struct {
     float3 orig, dir;
@@ -62,8 +63,8 @@ class diffuse : public material {
     float3 fcolor;
     __device__ diffuse(float3 fcolor) : fcolor(fcolor) {}
     __device__ ray scatter(const ray in_r, const hit_record record, float3 color) override {
-        int a = 1;
-         //
+//         random_norm_float3(rng)
+
         // random diffuse
         ray r = {0.1, 0.1};
         return r;

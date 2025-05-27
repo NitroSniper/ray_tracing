@@ -7,11 +7,12 @@
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a375a8b2-714e-49ed-841c-ae1b0c3a6cc0" name="Changes" comment="Massive performance boost, Stop converting float to u8 in Rust and moved to GPU">
+    <list default="true" id="a375a8b2-714e-49ed-841c-ae1b0c3a6cc0" name="Changes" comment="Added Gui Statistic">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/cuda/kernel.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda/kernel.cu" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/cuda/lib.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda/lib.cu" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/gui.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ray_tracing.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/ray_tracing.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -133,7 +134,7 @@
       <workItem from="1747102802350" duration="17241000" />
       <workItem from="1747372793194" duration="3517000" />
       <workItem from="1748112656545" duration="16489000" />
-      <workItem from="1748198327490" duration="29169000" />
+      <workItem from="1748198327490" duration="31820000" />
     </task>
     <task id="LOCAL-00001" summary="Moved Cpu to own folder and added a basic GPU implementation program">
       <option name="closed" value="true" />
@@ -247,7 +248,15 @@
       <option name="project" value="LOCAL" />
       <updated>1748316905362</updated>
     </task>
-    <option name="localTasksCounter" value="15" />
+    <task id="LOCAL-00015" summary="Added Gui Statistic">
+      <option name="closed" value="true" />
+      <created>1748318082652</created>
+      <option name="number" value="00015" />
+      <option name="presentableId" value="LOCAL-00015" />
+      <option name="project" value="LOCAL" />
+      <updated>1748318082652</updated>
+    </task>
+    <option name="localTasksCounter" value="16" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -279,6 +288,7 @@
     <MESSAGE value="Random button changing random state" />
     <MESSAGE value="Normalised Random Colours" />
     <MESSAGE value="Massive performance boost, Stop converting float to u8 in Rust and moved to GPU" />
-    <option name="LAST_COMMIT_MESSAGE" value="Massive performance boost, Stop converting float to u8 in Rust and moved to GPU" />
+    <MESSAGE value="Added Gui Statistic" />
+    <option name="LAST_COMMIT_MESSAGE" value="Added Gui Statistic" />
   </component>
 </project>
