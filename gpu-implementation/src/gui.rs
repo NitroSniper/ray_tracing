@@ -182,6 +182,7 @@ impl Gui {
 
 #[derive(PartialEq)]
 pub struct DebugGui {
+    pub render_msg: Rc<str>,
     pub random: bool,
     pub total_render_ms: Duration,
     pub cuda_render_ms: Duration,
@@ -189,7 +190,7 @@ pub struct DebugGui {
 }
 impl Default for DebugGui {
     fn default() -> Self {
-        Self { random: false, total_render_ms: Duration::new(0, 0), cuda_render_ms: Duration::new(0, 0), device_gui: Default::default() }
+        Self { render_msg: "".into(), random: false, total_render_ms: Duration::new(0, 0), cuda_render_ms: Duration::new(0, 0), device_gui: Default::default() }
     }
 }
 
@@ -200,6 +201,7 @@ impl DebugGui {
         ui.heading("Statistic");
         ui.label("Hold `LeftAlt` down to pause statistic");
         ui.add_space(8.0);
+        ui.label(format!("Current State: {:?}", self.render_msg));
         ui.label(format!("Total Render Duration: {:?}", self.total_render_ms));
         ui.label(format!("Total Cuda Render Duration: {:?}", self.cuda_render_ms));
 
@@ -209,15 +211,25 @@ impl DebugGui {
         ui.heading("Options");
         ui.checkbox(&mut self.device_gui.show_random, "Show Random State?");
         ui.checkbox(&mut self.device_gui.random_norm, "Normalise Random State?");
-        ui.add(
-            {
+        ui.add({
                 let samples = self.device_gui.sample2_per_pixel.pow(2);
                 egui::Slider::new(&mut self.device_gui.sample2_per_pixel, 1..=50)
                     .text(format!("{:?} rays per pixel (sample^2 per pixel)", samples))
                     .logarithmic(true)
                     .clamp_to_range(true)
                     .trailing_fill(true)
-            }
+            });
+        ui.add(egui::Slider::new(&mut self.device_gui.max_depth, 1..=20)
+                    .text("Max Light Bounces")
+                    .logarithmic(true)
+                    .clamp_to_range(true)
+                    .trailing_fill(true)
+        );
+        ui.add(
+            egui::Slider::new(&mut self.device_gui.block_dim, 128..=1024)
+                    .text("Block Dim Amount")
+                    .clamp_to_range(true)
+                    .trailing_fill(true)
         );
         if ui.button("Generate New Random State").clicked() {
             self.random = true;

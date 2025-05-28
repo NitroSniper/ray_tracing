@@ -1,5 +1,5 @@
 use std::rc::Rc;
-use cudarc::driver::{CudaContext, CudaFunction, CudaModule, CudaSlice, LaunchConfig, Profiler, PushKernelArg};
+use cudarc::driver::{CudaContext, CudaEvent, CudaFunction, CudaModule, CudaSlice, DriverError, LaunchConfig, Profiler, PushKernelArg};
 use std::sync::{Arc, RwLock};
 use cudarc::curand::CudaRng;
 
@@ -29,13 +29,15 @@ pub mod cuda_types {
     #[derive(PartialEq)]
     pub struct DeviceGUI {
         pub sample2_per_pixel: u32,
+        pub block_dim: u32,
+        pub max_depth: u32,
         pub show_random: bool,
-        pub random_norm: bool,
+        pub random_norm: bool
     }
 
     impl Default for DeviceGUI {
         fn default() -> Self {
-            Self { show_random: false, random_norm: false, sample2_per_pixel: 4 }
+            Self { show_random: false, random_norm: false, sample2_per_pixel: 4, block_dim: 512, max_depth: 4 }
         }
     }
     unsafe impl DeviceRepr for Camera {}
@@ -97,17 +99,20 @@ impl CudaWorld {
             self.gui.write().expect("Gui can't be written").random = false;
         };
 
-        {
+        let string: Rc<str> = {
             let gui = self.gui.read().expect("Gui can't be read");
             let builder = binding.arg(&self.rng_block).arg(&mut self.d_frame).arg(camera).arg(&gui.device_gui);
-            let dim = 1024;
-            let launch_cfg = LaunchConfig {block_dim: (dim, 1, 1), grid_dim: ((camera.image_width * camera.image_height).div_ceil(dim), 1, 1), shared_mem_bytes: 0};
-            unsafe {
+            let dim = gui.device_gui.block_dim;
+            let launch_cfg = LaunchConfig {block_dim: (dim, 1, 1), grid_dim: ((camera.image_width * camera.image_height).div_ceil(gui.device_gui.block_dim), 1, 1), shared_mem_bytes: 0};
+            match unsafe {
                 builder.launch(launch_cfg)
-            }.expect("Failed to launch kernel");
+            } {
+                Ok(_) => {"No Issues".into()}
+                Err(err) => {err.error_name().unwrap().to_str().unwrap().into()}
+            }
         };
-
         stream.memcpy_dtoh(&self.d_frame, frame).expect("Failed to copy device frames");
+        // self.gui.write().expect("Gui can't be written").render_msg = string;
     }
 }
 

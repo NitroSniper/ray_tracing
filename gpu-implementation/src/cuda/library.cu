@@ -23,7 +23,7 @@ __device__ float3 random_float3() {
     );
 }
 __device__ float3 random_norm_float3() {
-    for (int i = 0; i < 10; i++) {
+    for (int i = 0; i < 20; i++) {
         float3 p = random_float3();
         if (dot(p, p) <= 1.0) return normalize(p);
     }
@@ -61,9 +61,8 @@ struct Camera : public Ownership<Camera> {
 
 
 struct GuiState : public Ownership<GuiState> {
-    unsigned int sample2_per_pixel;
-    bool show_random;
-    bool random_norm;
+    unsigned int sample2_per_pixel, block_dim, max_depth;
+    bool show_random, random_norm;
 
     GuiState() = default;
 };
@@ -109,6 +108,52 @@ struct Diffuse : public Ownership<Diffuse> {
         float3 scatter_direction = add(record.normal, random_norm_float3());
         scatter_direction = float3_near_zero_mag(scatter_direction) ? record.normal : scatter_direction;
         return Light(color, Ray(record.point, scatter_direction));
+    }
+};
+
+struct Reflect : public Ownership<Reflect> {
+    float3 color;
+
+    Reflect() = default;
+
+    __device__ Reflect(float3 c) : color(c) {}
+    __device__ Light scatter(Ray& in_r, HitRecord& record) {
+        float3 reflected = float3_reflect(in_r.dir, record.normal);
+        return Light(color, Ray(record.point, reflected));
+    }
+};
+
+enum class MaterialType {
+    DIFFUSE=1,
+    REFLECT,
+};
+
+struct Material : public Ownership<Material> {
+    MaterialType type;
+
+    union {
+        Diffuse diff;
+        Reflect refl;
+    };
+
+    Material() = default;
+
+    __device__ Material(Diffuse d)
+        : type(MaterialType::DIFFUSE)
+        , diff(static_cast<Diffuse&&>(d)) {}
+
+    __device__ Material(Reflect r)
+        : type(MaterialType::REFLECT)
+        , refl(static_cast<Reflect&&>(r)) {}
+
+    __device__ Light scatter(Ray& in_r, HitRecord& record) {
+        switch (type) {
+            case MaterialType::DIFFUSE:
+                return diff.scatter(in_r, record);
+            case MaterialType::REFLECT:
+                return refl.scatter(in_r, record);
+        }
+        return Light();
     }
 };
 

@@ -19,11 +19,10 @@ __device__ LightRecord hit_world(Ray& r, float2 t, Sphere* world, const unsigned
 
 
 
-__device__ float3 ray_color(Ray r, Sphere* world, const unsigned int world_size) {
+__device__ float3 ray_color(Ray r, Sphere* world, const unsigned int world_size, unsigned int max_depth) {
     bool bounce;
     float2 t = make_float2(0.0f, 1024.0f);
     float3 color = make_float3(1.0f, 1.0f, 1.0f);
-    unsigned int max_depth = 2;
 
     for (int depth = 0; depth <= max_depth; depth++) {
         bounce = false;
@@ -75,16 +74,18 @@ extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, Came
     // Load shared data
     __shared__ Camera cam;
     __shared__ GuiState gui;
-    const unsigned int world_size = 2;
+    const unsigned int world_size = 4;
     __shared__ Sphere world[world_size];
     cam = static_cast<Camera&&>(cam_g);
     gui = static_cast<GuiState&&>(gui_g);
-    world[1] = Sphere(make_float3(0.0f,0.0f,-1.2f), 0.5f, Diffuse(make_float3(0.1f,0.2f,0.5f)));
-    world[0] = Sphere(make_float3(0.0f, -100.5f,-1.0f), 100.0f, Diffuse({0.8f,0.8f,0.0f}));
+    world[0] = Sphere(make_float3(0.0f,0.0f,-1.2f), 0.5f, Diffuse(make_float3(0.1f,0.2f,0.5f)));
+    world[1] = Sphere(make_float3(0.0f, -100.5f,-1.0f), 100.0f, Diffuse({0.8f,0.8f,0.0f}));
+    world[2] = Sphere(make_float3(-1.0f,0.0f,-1.2f), 0.5f, Diffuse(make_float3(0.8f,0.8f,0.8f)));
+    world[3] = Sphere(make_float3(1.0f,0.0f,-1.2f), 0.5f, Diffuse(make_float3(0.8f,0.6f,0.2f)));
     __syncthreads();
 
     // if thread doesn't have a pixel
-	unsigned int idx = 1024*blockIdx.x + threadIdx.x;
+	unsigned int idx = gui.block_dim*blockIdx.x + threadIdx.x;
     if (idx >= cam.image_width*cam.image_height) return;
 
 	pcg32_global = {rng_state[idx], 0};
@@ -101,7 +102,7 @@ extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, Came
     float3 total = make_float3(0.0f, 0.0f, 0.0f);
     unsigned int samples = gui.sample2_per_pixel*gui.sample2_per_pixel;
     for (int sample_idx = 0; sample_idx < samples; sample_idx++) {
-        total = add(total, ray_color(get_ray(i, j, sample_idx, gui.sample2_per_pixel, cam), world, world_size));
+        total = add(total, ray_color(get_ray(i, j, sample_idx, gui.sample2_per_pixel, cam), world, world_size, gui.max_depth));
         __syncthreads();
     }
 
