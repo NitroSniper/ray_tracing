@@ -88,14 +88,42 @@ struct HitRecord : public Ownership<HitRecord> {
     HitRecord() = default;
 };
 
+struct Light : public Ownership<Light> {
+    float3 color;
+    Ray ray;
+
+    Light() = default;
+
+    __device__ Light(float3 c, Ray r)
+    : color(c)
+    , ray(static_cast<Ray&&>(r)) {}
+};
+
+struct Diffuse : public Ownership<Diffuse> {
+    float3 color;
+
+    Diffuse() = default;
+
+    __device__ Diffuse(float3 c) : color(c) {}
+    __device__ Light scatter(Ray& in_r, HitRecord& record) {
+        float3 scatter_direction = add(record.normal, random_norm_float3());
+        scatter_direction = float3_near_zero_mag(scatter_direction) ? record.normal : scatter_direction;
+        return Light(color, Ray(record.point, scatter_direction));
+    }
+};
 
 struct Sphere : public Ownership<Sphere> {
     float3 center;
     float radius;
+    Diffuse mat;
 
     Sphere() = default;
 
-    __device__ Sphere(float3 c, float r) : center(c), radius(r) {}
+    __device__ Sphere(float3 c, float r, Diffuse m)
+        : center(c)
+        , radius(r)
+        , mat(static_cast<Diffuse&&>(m)) {}
+
     __device__ HitRecord hit(Ray& r, float2 t) {
         HitRecord record;
         float3 oc = sub(center, r.orig);
@@ -126,4 +154,15 @@ struct Sphere : public Ownership<Sphere> {
         record.normal = invert_if_dot(record.normal, r.dir, false);
         return record;
     }
+};
+
+struct LightRecord : public Ownership<LightRecord> {
+    HitRecord record;
+    Light light;
+
+    LightRecord() = default;
+
+    __device__ LightRecord(HitRecord r, Light l)
+        : record(static_cast<HitRecord&&>(r))
+        , light(static_cast<Light&&>(l)) {}
 };

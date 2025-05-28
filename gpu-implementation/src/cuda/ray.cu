@@ -1,14 +1,17 @@
-
-__device__ HitRecord hit_world(Ray& r, float2 t, Sphere* world, const unsigned int world_size) {
+__device__ LightRecord hit_world(Ray& r, float2 t, Sphere* world, const unsigned int world_size) {
     HitRecord record;
-    HitRecord best;
+    LightRecord best;
     float closest_t_max = t.y;
     for (int i = 0; i < world_size; i++) {
         Sphere& s = world[i];
         record = s.hit(r, make_float2(t.x, closest_t_max));
         if (!record.is_none) {
             closest_t_max = record.t;
-            best = static_cast<HitRecord&&>(record);
+            Light light = s.mat.scatter(r, record);
+            best = LightRecord(
+                static_cast<HitRecord&&>(record),
+                static_cast<Light&&>(light)
+            );
         }
     }
     return best;
@@ -17,17 +20,27 @@ __device__ HitRecord hit_world(Ray& r, float2 t, Sphere* world, const unsigned i
 
 
 __device__ float3 ray_color(Ray r, Sphere* world, const unsigned int world_size) {
+    bool bounce;
     float2 t = make_float2(0.0f, 1024.0f);
+    float3 color = make_float3(1.0f, 1.0f, 1.0f);
+    unsigned int max_depth = 2;
 
-    // float3 color = make_float3(1.0f, 1.0f, 1.0f);
-    HitRecord record = hit_world(r, t, world, world_size);
-    if (!record.is_none) {
-        float3 n = normalize(sub(r.at(record.t), make_float3(0.0, 0.0, -1.0)));
-        return mul(make_float3(n.x+1.0, n.y+1.0,n.z+1.0), 0.5);
+    for (int depth = 0; depth <= max_depth; depth++) {
+        bounce = false;
+        LightRecord lr = hit_world(r, t, world, world_size);
+        if (!lr.record.is_none) {
+            r = static_cast<Ray&&>(lr.light.ray);
+            color = mul(color, lr.light.color);
+            bounce = true;
+        }
+        if (bounce) continue;
+
+        float3 unit_dir = normalize(r.dir);
+        float a = (unit_dir.y + 1.0f) * 0.5f;
+        color = mul(color, add(mul(make_float3(1.0f, 1.0f, 1.0f), 1.0f-a), mul(make_float3(0.5f, 0.7f, 1.0f), a)));
+        break;
     }
-    float3 unit_dir = normalize(r.dir);
-    float a = (unit_dir.y + 1.0f) * 0.5f;
-    return add(mul(make_float3(1.0f, 1.0f, 1.0f), 1.0f-a), mul(make_float3(0.5f, 0.7f, 1.0f), a));
+    return color;
 }
 
 
@@ -66,8 +79,8 @@ extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, Came
     __shared__ Sphere world[world_size];
     cam = static_cast<Camera&&>(cam_g);
     gui = static_cast<GuiState&&>(gui_g);
-    world[1] = Sphere(make_float3(0.0f,0.0f,-1.2f), 0.5f);
-    world[0] = Sphere(make_float3(0.0f, -100.5f,-1.0f), 100.0f);
+    world[1] = Sphere(make_float3(0.0f,0.0f,-1.2f), 0.5f, Diffuse(make_float3(0.1f,0.2f,0.5f)));
+    world[0] = Sphere(make_float3(0.0f, -100.5f,-1.0f), 100.0f, Diffuse({0.8f,0.8f,0.0f}));
     __syncthreads();
 
     // if thread doesn't have a pixel
