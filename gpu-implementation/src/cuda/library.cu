@@ -55,9 +55,19 @@ struct Camera : public Ownership<Camera> {
 
     Camera() = default;
 };
+
 struct GuiState : public Ownership<GuiState> {
     bool show_random;
     bool random_norm;
 
     GuiState() = default;
+};
+
+struct Ray {
+    float3 orig, dir;
+    __device__ Ray(float3 o, float3 d) : orig(o), dir(d) {}
+    Ray() = default;
+    __device__ float3 at(float lambda) {
+        return add(orig, mul(dir, lambda));
+    }
 };
