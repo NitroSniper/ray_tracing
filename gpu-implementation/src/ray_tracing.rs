@@ -52,7 +52,8 @@ pub struct CudaWorld {
     gui: Rc<RwLock<Gui>>
 }
 
-const PTX_SRC: &str = concat!(include_str!("cuda/floatN_helper.cu"), include_str!("cuda/lib.cu"), include_str!("cuda/kernel.cu"));
+// const PTX_SRC: &str = concat!(include_str!("cuda/floatN_helper.cu"), include_str!("cuda/lib.cu"), include_str!("cuda/kernel.cu"));
+const PTX_SRC: &str = concat!(include_str!("cuda/floatN_helper.cu"), include_str!("cuda/library.cu"), include_str!("cuda/ray.cu"));
 
 impl CudaWorld {
     pub fn new(frame_size: usize, gui: Rc<RwLock<Gui>>) -> Self {
