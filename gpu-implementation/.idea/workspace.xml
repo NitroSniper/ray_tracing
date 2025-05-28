@@ -15,12 +15,11 @@
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a375a8b2-714e-49ed-841c-ae1b0c3a6cc0" name="Changes" comment="Implemented Hit Sphere">
+    <list default="true" id="a375a8b2-714e-49ed-841c-ae1b0c3a6cc0" name="Changes" comment="Implemented code for Material">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/cuda/library.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda/library.cu" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/cuda/ray.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda/ray.cu" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/gui.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ray_tracing.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/ray_tracing.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -360,7 +359,15 @@
       <option name="project" value="LOCAL" />
       <updated>1748431350104</updated>
     </task>
-    <option name="localTasksCounter" value="27" />
+    <task id="LOCAL-00027" summary="Implemented code for Material">
+      <option name="closed" value="true" />
+      <created>1748438946457</created>
+      <option name="number" value="00027" />
+      <option name="presentableId" value="LOCAL-00027" />
+      <option name="project" value="LOCAL" />
+      <updated>1748438946457</updated>
+    </task>
+    <option name="localTasksCounter" value="28" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -378,7 +385,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="GPU renders a blank screen with CUDA" />
     <MESSAGE value="GPU renders a coloured screen pixels" />
     <MESSAGE value="Want to move to Cuda Library" />
     <MESSAGE value="Starting to move to Cuda Library" />
@@ -403,6 +409,7 @@
     <MESSAGE value="Debug Menu modularised" />
     <MESSAGE value="Multiple Sphere with coloured Normals" />
     <MESSAGE value="Implemented Hit Sphere" />
-    <option name="LAST_COMMIT_MESSAGE" value="Implemented Hit Sphere" />
+    <MESSAGE value="Implemented code for Material" />
+    <option name="LAST_COMMIT_MESSAGE" value="Implemented code for Material" />
   </component>
 </project>

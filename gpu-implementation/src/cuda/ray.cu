@@ -79,9 +79,9 @@ extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, Came
     cam = static_cast<Camera&&>(cam_g);
     gui = static_cast<GuiState&&>(gui_g);
     world[0] = Sphere(make_float3(0.0f,0.0f,-1.2f), 0.5f, Diffuse(make_float3(0.1f,0.2f,0.5f)));
-    world[1] = Sphere(make_float3(0.0f, -100.5f,-1.0f), 100.0f, Diffuse({0.8f,0.8f,0.0f}));
-    world[2] = Sphere(make_float3(-1.0f,0.0f,-1.2f), 0.5f, Diffuse(make_float3(0.8f,0.8f,0.8f)));
-    world[3] = Sphere(make_float3(1.0f,0.0f,-1.2f), 0.5f, Diffuse(make_float3(0.8f,0.6f,0.2f)));
+    world[1] = Sphere(make_float3(0.0f, -100.5f,-1.0f), 100.0f, Diffuse(make_float3(0.8f,0.8f,0.0f)));
+    world[2] = Sphere(make_float3(-1.0f,0.0f,-1.2f), 0.5f, Reflect(make_float3(0.8f,0.8f,0.8f)));
+    world[3] = Sphere(make_float3(1.0f,0.0f,-1.2f), 0.5f, Reflect(make_float3(0.8f,0.6f,0.2f)));
     __syncthreads();
 
     // if thread doesn't have a pixel

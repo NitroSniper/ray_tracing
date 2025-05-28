@@ -160,14 +160,14 @@ struct Material : public Ownership<Material> {
 struct Sphere : public Ownership<Sphere> {
     float3 center;
     float radius;
-    Diffuse mat;
+    Material mat;
 
     Sphere() = default;
 
-    __device__ Sphere(float3 c, float r, Diffuse m)
+    __device__ Sphere(float3 c, float r, Material m)
         : center(c)
         , radius(r)
-        , mat(static_cast<Diffuse&&>(m)) {}
+        , mat(static_cast<Material&&>(m)) {}
 
     __device__ HitRecord hit(Ray& r, float2 t) {
         HitRecord record;

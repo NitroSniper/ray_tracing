@@ -17,7 +17,7 @@ use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 use crate::ray_tracing::cuda_types::Camera;
 
-const WIDTH: u32 = 1024;
+const WIDTH: u32 = 800;
 const ASPECT_RATIO: f32 = 16.0 / 9.0;
 fn main() -> Result<(), Error> {
     env_logger::init();
