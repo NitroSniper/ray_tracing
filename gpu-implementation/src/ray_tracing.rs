@@ -8,30 +8,33 @@ pub mod cuda_types {
 
     pub type FloatSize = f32;
 
+    #[repr(C)]
     struct Pixel {
         r: FloatSize,
         g: FloatSize,
         b: FloatSize,
         a: FloatSize,
     }
+    #[repr(C)]
     pub struct Camera {
         pub aspect_ratio: FloatSize,
         pub image_width: u32,
         pub image_height: u32,
-        pub samples_per_pixel: u32,
         pub center: [FloatSize; 3],
         pub pixel00_loc: [FloatSize; 3],
         pub pixel_delta: [FloatSize; 3],
     }
 
+    #[repr(C)]
     pub struct DeviceGUI {
+        pub sample2_per_pixel: u32,
         pub show_random: bool,
         pub random_norm: bool,
     }
 
     impl Default for DeviceGUI {
         fn default() -> Self {
-            Self { show_random: false, random_norm: false }
+            Self { show_random: false, random_norm: false, sample2_per_pixel: 4 }
         }
     }
     unsafe impl DeviceRepr for Camera {}
@@ -108,7 +111,7 @@ impl CudaWorld {
 }
 
 impl Camera {
-    pub fn new(aspect_ratio: FloatSize, image_width: u32, samples_per_pixel: u32) -> Self {
+    pub fn new(aspect_ratio: FloatSize, image_width: u32) -> Self {
         let image_height = {
             let height = (image_width as FloatSize / aspect_ratio) as u32;
             if height == 0 {
@@ -147,7 +150,6 @@ impl Camera {
             center,
             pixel00_loc,
             pixel_delta,
-            samples_per_pixel,
         }
     }
 }

@@ -1,7 +1,7 @@
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
-use egui::{ClippedPrimitive, Context, TexturesDelta, ViewportId};
+use egui::{ClippedPrimitive, Context, Slider, TexturesDelta, ViewportId};
 use egui_wgpu::{Renderer, ScreenDescriptor};
 use pixels::{wgpu, PixelsContext};
 use winit::event_loop::EventLoopWindowTarget;
@@ -185,10 +185,22 @@ impl Gui {
                 ui.label(format!("Total Render Duration: {:?}", self.total_render_ms));
                 ui.label(format!("Total Cuda Render Duration: {:?}", self.cuda_render_ms));
 
+
+
                 ui.separator();
                 ui.heading("Options");
                 ui.checkbox(&mut self.device_gui.show_random, "Show Random State?");
                 ui.checkbox(&mut self.device_gui.random_norm, "Normalise Random State?");
+                ui.add(
+                    {
+                        let samples = self.device_gui.sample2_per_pixel.pow(2);
+                        egui::Slider::new(&mut self.device_gui.sample2_per_pixel, 1..=50)
+                            .text(format!("{:?} rays per pixel (sample^2 per pixel)", samples))
+                            .logarithmic(true)
+                            .clamp_to_range(true)
+                            .trailing_fill(true)
+                    }
+                );
                 if ui.button("Generate New Random State").clicked() {
                     self.random = true;
                 }

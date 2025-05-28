@@ -1,8 +1,14 @@
-__device__ float3 ray_color(Ray r) {
-     float3 unit_dir = normalize(r.dir);
-     float a = (unit_dir.y + 1.0f) * 0.5f;
-     float3 color = add(mul(make_float3(1.0f, 1.0f, 1.0f), 1.0f-a), mul(make_float3(0.5f, 0.7f, 1.0f), a));
-     return color;
+__device__ float3 ray_color(Ray r, Sphere& s) {
+    float2 t = make_float2(0.0f, 1024.0f);
+    HitRecord record = s.hit(r, t);
+    if (!record.is_none) {
+        float3 n = normalize(sub(r.at(record.t), make_float3(0.0, 0.0, -1.0)));
+        return mul(make_float3(n.x+1.0, n.y+1.0,n.z+1.0), 0.5);
+    }
+
+    float3 unit_dir = normalize(r.dir);
+    float a = (unit_dir.y + 1.0f) * 0.5f;
+    return add(mul(make_float3(1.0f, 1.0f, 1.0f), 1.0f-a), mul(make_float3(0.5f, 0.7f, 1.0f), a));
 }
 
 
@@ -10,10 +16,11 @@ __device__ Ray get_ray(
     const unsigned int i,
     const unsigned int j,
     const unsigned int sample,
+    const unsigned int sample_len,
     const Camera& cam
 ) {
-	float sample_i = (float)(sample % cam.samples_per_pixel) / cam.samples_per_pixel;
-	float sample_j = (float)(sample / cam.samples_per_pixel) / cam.samples_per_pixel;
+	float sample_i = (float)(sample % sample_len) / sample_len;
+	float sample_j = (float)(sample / sample_len) / sample_len;
 
     float3 pixel_center = add(mul(make_float3((float)i+sample_i, (float)j+sample_j, 0.0f), cam.pixel_delta), cam.pixel00_loc);
     Ray r(cam.center, sub(pixel_center, cam.center));
@@ -34,24 +41,22 @@ __device__ uchar4 to_pixel(float4 fpixel) {
 
 extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, Camera cam_g, GuiState gui_g) {
     __shared__ Camera cam;
+    __shared__ Sphere s;
     __shared__ GuiState gui;
     cam = static_cast<Camera&&>(cam_g);
     gui = static_cast<GuiState&&>(gui_g);
+    s = Sphere(make_float3(0.0f,0.0f,-1.0f), 0.5f);
     __syncthreads();
 	unsigned int idx = 1024*blockIdx.x + threadIdx.x;
     if (idx >= cam.image_width*cam.image_height) return;
-    unsigned int samples = cam.samples_per_pixel*cam.samples_per_pixel;
+    unsigned int samples = gui.sample2_per_pixel*gui.sample2_per_pixel;
 
 	pcg32_global = {rng_state[idx], 0};
 // 	Camera cam2 = static_cast<Camera&&>(cam);
 
 
     if (gui.show_random) {
-	    float3 rgb = gui.random_norm ? random_norm_float3() : make_float3(
-	        ldexpf(pcg32_random_r(), -32),
-            ldexpf(pcg32_random_r(), -32),
-            ldexpf(pcg32_random_r(), -32)
-	    );
+	    float3 rgb = gui.random_norm ? random_norm_float3() : random_float3();
 	    frame[idx] = to_pixel(make_float4_f3(rgb, 1.0f));
 	    return;
     }
@@ -61,7 +66,7 @@ extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, Came
 	int j = idx / cam.image_width;
     float3 total = make_float3(0.0f, 0.0f, 0.0f);
     for (int sample_idx = 0; sample_idx < samples; sample_idx++) {
-        total = add(total, ray_color(get_ray(i, j, sample_idx, cam)));
+        total = add(total, ray_color(get_ray(i, j, sample_idx, gui.sample2_per_pixel, cam), s));
         __syncthreads();
     }
 

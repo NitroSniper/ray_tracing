@@ -21,7 +21,7 @@ const WIDTH: u32 = 1024;
 const ASPECT_RATIO: f32 = 16.0 / 9.0;
 fn main() -> Result<(), Error> {
     env_logger::init();
-    let camera = Camera::new(ASPECT_RATIO, WIDTH, 8);
+    let mut camera = Camera::new(ASPECT_RATIO, WIDTH);
     let event_loop = EventLoop::new().unwrap();
     let mut input = WinitInputHelper::new();
     let window = {
@@ -50,6 +50,11 @@ fn main() -> Result<(), Error> {
     };
     let gui = framework.gui.clone();
     let mut cuda_world = CudaWorld::new(pixels.frame().len(), gui.clone());
+
+    let mut start = Instant::now();
+    let mut cuda_render_ms = start.elapsed();
+    let mut total_render_ms = start.elapsed();
+
     let res = event_loop.run(|event, elwt| {
 
         // Handle input events
@@ -79,9 +84,9 @@ fn main() -> Result<(), Error> {
                 ..
             } => {
                 framework.prepare(&window);
-                let start = Instant::now();
+                start = Instant::now();
                 cuda_world.render(pixels.frame_mut(), &camera);
-                let cuda_render_ms = start.elapsed();
+                cuda_render_ms = start.elapsed();
                 let render_result = pixels.render_with(|encoder, render_target, context| {
                     context.scaling_renderer.render(encoder, render_target);
                     framework.render(encoder, render_target, context);
@@ -92,7 +97,8 @@ fn main() -> Result<(), Error> {
                     elwt.exit();
                     return;
                 }
-                let total_render_ms = start.elapsed();
+                total_render_ms = start.elapsed();
+
                 if !input.key_held(KeyCode::AltLeft) {
                     gui.write().expect("RwLock write fail").total_render_ms = total_render_ms;
                     gui.write().expect("RwLock write fail").cuda_render_ms = cuda_render_ms;

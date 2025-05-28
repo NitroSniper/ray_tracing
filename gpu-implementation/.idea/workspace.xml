@@ -15,10 +15,13 @@
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a375a8b2-714e-49ed-841c-ae1b0c3a6cc0" name="Changes" comment="Basic Screen">
+    <list default="true" id="a375a8b2-714e-49ed-841c-ae1b0c3a6cc0" name="Changes" comment="Sky with AA">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/cuda/library.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda/library.cu" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/cuda/ray.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda/ray.cu" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/gui.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ray_tracing.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/ray_tracing.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -148,7 +151,7 @@
       <workItem from="1747102802350" duration="17241000" />
       <workItem from="1747372793194" duration="3517000" />
       <workItem from="1748112656545" duration="16489000" />
-      <workItem from="1748198327490" duration="76123000" />
+      <workItem from="1748198327490" duration="80832000" />
     </task>
     <task id="LOCAL-00001" summary="Moved Cpu to own folder and added a basic GPU implementation program">
       <option name="closed" value="true" />
@@ -318,7 +321,15 @@
       <option name="project" value="LOCAL" />
       <updated>1748419914031</updated>
     </task>
-    <option name="localTasksCounter" value="22" />
+    <task id="LOCAL-00022" summary="Sky with AA">
+      <option name="closed" value="true" />
+      <created>1748421457723</created>
+      <option name="number" value="00022" />
+      <option name="presentableId" value="LOCAL-00022" />
+      <option name="project" value="LOCAL" />
+      <updated>1748421457723</updated>
+    </task>
+    <option name="localTasksCounter" value="23" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -357,6 +368,7 @@
     <MESSAGE value="Render Sphere, but need to get closest" />
     <MESSAGE value="Memory Issue. Need to implement without references and implicit Copy" />
     <MESSAGE value="Basic Screen" />
-    <option name="LAST_COMMIT_MESSAGE" value="Basic Screen" />
+    <MESSAGE value="Sky with AA" />
+    <option name="LAST_COMMIT_MESSAGE" value="Sky with AA" />
   </component>
 </project>

@@ -15,13 +15,16 @@ __device__ uint64_t pcg32_random_r()
     return (xorshifted >> rot) | (xorshifted << ((-rot) & 31));
 }
 
+__device__ float3 random_float3() {
+    return make_float3(
+        ldexpf(pcg32_random_r(), -32),
+        ldexpf(pcg32_random_r(), -32),
+        ldexpf(pcg32_random_r(), -32)
+    );
+}
 __device__ float3 random_norm_float3() {
     for (int i = 0; i < 10; i++) {
-        float3 p = make_float3(
-            ldexpf(pcg32_random_r(), -32),
-            ldexpf(pcg32_random_r(), -32),
-            ldexpf(pcg32_random_r(), -32)
-        );
+        float3 p = random_float3();
         if (dot(p, p) <= 1.0) return normalize(p);
     }
     return make_float3(1.0, 0.0, 0.0);
@@ -50,24 +53,77 @@ public:
 
 struct Camera : public Ownership<Camera> {
     float aspect_ratio;
-    unsigned int image_width, image_height, samples_per_pixel;
+    unsigned int image_width, image_height;
     float3 center, pixel00_loc, pixel_delta;
 
     Camera() = default;
 };
 
+
 struct GuiState : public Ownership<GuiState> {
+    unsigned int sample2_per_pixel;
     bool show_random;
     bool random_norm;
 
     GuiState() = default;
 };
 
-struct Ray {
+struct Ray : public Ownership<Ray> {
     float3 orig, dir;
-    __device__ Ray(float3 o, float3 d) : orig(o), dir(d) {}
+
     Ray() = default;
+
+    __device__ Ray(float3 o, float3 d) : orig(o), dir(d) {}
     __device__ float3 at(float lambda) {
         return add(orig, mul(dir, lambda));
+    }
+};
+
+struct HitRecord : public Ownership<HitRecord> {
+    bool is_none = true;
+    float3 point, normal;
+    float t;
+    bool front_face;
+
+    HitRecord() = default;
+};
+
+
+struct Sphere : public Ownership<Sphere> {
+    float3 center;
+    float radius;
+
+    Sphere() = default;
+
+    __device__ Sphere(float3 c, float r) : center(c), radius(r) {}
+    __device__ HitRecord hit(Ray& r, float2 t) {
+        HitRecord record;
+        float3 oc = sub(center, r.orig);
+        float a = dot(r.dir, r.dir);
+        float h = dot(r.dir, oc);
+        float c = dot(oc, oc) - radius*radius;
+        float discriminant = h*h - a*c;
+        if (discriminant < 0.0) return record;
+
+        float sqrtd = sqrtf(discriminant);
+        float root_a = (h - sqrtd) / a;
+        float root_b = (h + sqrtd) / a;
+
+        float root;
+        if (contains(t, root_a)) {
+            root = root_a;
+        } else if (contains(t, root_b)){
+            root = root_b;
+        } else {
+            return record;
+        }
+
+        record.is_none = false;
+        record.t = root;
+        record.point = r.at(root);
+        record.normal = div(sub(record.point, center), radius);
+        // record.normal = div(sub(record.point, center), radius);
+        record.normal = invert_if_dot(record.normal, r.dir, false);
+        return record;
     }
 };
