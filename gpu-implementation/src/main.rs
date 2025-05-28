@@ -17,7 +17,7 @@ use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
 use crate::ray_tracing::cuda_types::Camera;
 
-const WIDTH: u32 = 800;
+const WIDTH: u32 = 1280;
 const ASPECT_RATIO: f32 = 16.0 / 9.0;
 fn main() -> Result<(), Error> {
     env_logger::init();
@@ -58,6 +58,7 @@ fn main() -> Result<(), Error> {
     let res = event_loop.run(|event, elwt| {
 
         // Handle input events
+        let _ = cuda_world.compile_ptx();
         if input.update(&event) {
             // Close events
             if input.key_pressed(KeyCode::Escape) || input.close_requested() {

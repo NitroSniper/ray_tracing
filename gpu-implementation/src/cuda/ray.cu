@@ -21,15 +21,21 @@ __device__ LightRecord hit_world(Ray& r, float2 t, Sphere* world, const unsigned
 
 __device__ float3 ray_color(Ray r, Sphere* world, const unsigned int world_size, unsigned int max_depth) {
     bool bounce;
-    float2 t = make_float2(0.0f, 1024.0f);
+    float2 t = make_float2(0.001f, 1024.0f);
     float3 color = make_float3(1.0f, 1.0f, 1.0f);
 
+    float3 nothing = make_float3(0.0f, 0.0f, 0.0f);
+
     for (int depth = 0; depth <= max_depth; depth++) {
+        if (depth == max_depth) {
+            return nothing;
+        }
         bounce = false;
         LightRecord lr = hit_world(r, t, world, world_size);
         if (!lr.record.is_none) {
             r = static_cast<Ray&&>(lr.light.ray);
-            color = mul(color, lr.light.color);
+            if (lr.light.is_none) color = mul(color, lr.light.color);
+            else return nothing;
             bounce = true;
         }
         if (bounce) continue;
@@ -39,7 +45,7 @@ __device__ float3 ray_color(Ray r, Sphere* world, const unsigned int world_size,
         color = mul(color, add(mul(make_float3(1.0f, 1.0f, 1.0f), 1.0f-a), mul(make_float3(0.5f, 0.7f, 1.0f), a)));
         break;
     }
-    return color;
+        return color;
 }
 
 
@@ -70,19 +76,14 @@ __device__ uchar4 to_pixel(float4 fpixel) {
 }
 
 
-extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, Camera cam_g, GuiState gui_g) {
+extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, Camera cam, GuiState gui) {
     // Load shared data
-    __shared__ Camera cam;
-    __shared__ GuiState gui;
     const unsigned int world_size = 4;
-    __shared__ Sphere world[world_size];
-    cam = static_cast<Camera&&>(cam_g);
-    gui = static_cast<GuiState&&>(gui_g);
-    world[0] = Sphere(make_float3(0.0f,0.0f,-1.2f), 0.5f, Diffuse(make_float3(0.1f,0.2f,0.5f)));
-    world[1] = Sphere(make_float3(0.0f, -100.5f,-1.0f), 100.0f, Diffuse(make_float3(0.8f,0.8f,0.0f)));
-    world[2] = Sphere(make_float3(-1.0f,0.0f,-1.2f), 0.5f, Reflect(make_float3(0.8f,0.8f,0.8f)));
-    world[3] = Sphere(make_float3(1.0f,0.0f,-1.2f), 0.5f, Reflect(make_float3(0.8f,0.6f,0.2f)));
-    __syncthreads();
+    Sphere world[world_size];
+    world[0] = Sphere(make_float3(0.0f, -100.5f,-1.0f), 100.0f, Diffuse(make_float3(0.8f,0.8f,0.0f)));
+    world[1] = Sphere(make_float3(0.0f,0.0f,-1.2f), 0.5f, Diffuse(make_float3(0.1f,0.2f,0.5f)));
+    world[2] = Sphere(make_float3(-1.0f,0.0f,-1.2f), 0.5f, Reflect(make_float3(0.8f,0.8f,0.8f), 0.3f));
+    world[3] = Sphere(make_float3(1.0f,0.0f,-1.2f), 0.5f, Reflect(make_float3(0.8f,0.6f,0.2f), 1.0f));
 
     // if thread doesn't have a pixel
 	unsigned int idx = gui.block_dim*blockIdx.x + threadIdx.x;
@@ -103,8 +104,7 @@ extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, Came
     unsigned int samples = gui.sample2_per_pixel*gui.sample2_per_pixel;
     for (int sample_idx = 0; sample_idx < samples; sample_idx++) {
         total = add(total, ray_color(get_ray(i, j, sample_idx, gui.sample2_per_pixel, cam), world, world_size, gui.max_depth));
-        __syncthreads();
     }
 
-    frame[idx] = to_pixel(make_float4_f3(div(total, samples), 1.0f));
+    frame[idx] = to_pixel(make_float4_f3(sqrt(div(total, samples)), 1.0f));
 }

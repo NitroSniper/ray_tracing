@@ -80,6 +80,10 @@ __forceinline__ __device__ float3 sub(const float3 a, const float3 b) {
     return make_float3(a.x - b.x, a.y - b.y, a.z - b.z);
 }
 
+__forceinline__ __device__ float3 sqrt(const float3 a) {
+    return make_float3(sqrtf(a.x),sqrtf(a.y),sqrtf(a.z));
+}
+
 __forceinline__ __device__ float4 __ffffmaf_rz(const float4 a, const float4 b, const float4 c) {
     float x = __fmaf_rz(a.x, b.x, c.x);
     float y = __fmaf_rz(a.y, b.y, c.y);

@@ -1,7 +1,10 @@
+use std::any::Any;
 use std::rc::Rc;
 use cudarc::driver::{CudaContext, CudaEvent, CudaFunction, CudaModule, CudaSlice, DriverError, LaunchConfig, Profiler, PushKernelArg};
 use std::sync::{Arc, RwLock};
 use cudarc::curand::CudaRng;
+use cudarc::nvrtc::CompileError;
+use log::error;
 
 pub mod cuda_types {
     use cudarc::driver::DeviceRepr;
@@ -37,7 +40,7 @@ pub mod cuda_types {
 
     impl Default for DeviceGUI {
         fn default() -> Self {
-            Self { show_random: false, random_norm: false, sample2_per_pixel: 4, block_dim: 512, max_depth: 4 }
+            Self { show_random: false, random_norm: false, sample2_per_pixel: 4, block_dim: 1024, max_depth: 4 }
         }
     }
     unsafe impl DeviceRepr for Camera {}
@@ -50,8 +53,7 @@ use crate::gui::{DebugGui, Gui};
 
 pub struct CudaWorld {
     ctx: Arc<CudaContext>,
-    module: Arc<CudaModule>,
-    render: CudaFunction,
+    render: Option<CudaFunction>,
     d_frame: CudaSlice<u8>,
     rng_block: CudaSlice<u32>,
     rng: CudaRng,
@@ -61,29 +63,34 @@ pub struct CudaWorld {
 // const PTX_SRC: &str = concat!(include_str!("cuda/floatN_helper.cu"), include_str!("cuda/lib.cu"), include_str!("cuda/kernel.cu"));
 const PTX_SRC: &str = concat!(include_str!("cuda/floatN_helper.cu"), include_str!("cuda/library.cu"), include_str!("cuda/ray.cu"));
 
+use std::fs;
+use std::io::Write;
+
+fn load_ptx_src() -> std::io::Result<String> {
+    let floatn = fs::read_to_string("src/cuda/floatN_helper.cu")?;
+    let library = fs::read_to_string("src/cuda/library.cu")?;
+    let ray = fs::read_to_string("src/cuda/ray.cu")?;
+    Ok(floatn + &library + &ray)
+}
+
+pub enum PtxError {
+    CompileError,
+    CompileErrorOther(CompileError),
+    LoadFunction(DriverError),
+}
+
 impl CudaWorld {
     pub fn new(frame_size: usize, gui: Rc<RwLock<DebugGui>>) -> Self {
         let ctx = cudarc::driver::CudaContext::new(0).expect("Failed to create CudaContext");
         let stream = ctx.default_stream();
         let rng = CudaRng::new(0, stream.clone()).expect("Failed to create CudaRng");
-        let ptx = cudarc::nvrtc::compile_ptx(PTX_SRC).unwrap_or_else(|err| {
-            use cudarc::nvrtc::CompileError;
-            match err {
-                CompileError::CompileError { nvrtc: _, options: _, log } => unsafe{ panic!("{}", log.as_c_str().to_str().unwrap()) },
-                _ => panic!("Failed to compile PTX: {:#?}", err)
-            };
-        });
-
-        let module = ctx.load_module(ptx).expect("Failed to load PTX");
-        let render = module.load_function("render").expect("Failed to load render function");
         let mut rng_block = stream.alloc_zeros::<u32>(frame_size).expect("Failed to allocate frame buffer on device");
         rng.fill_with_uniform(&mut rng_block).expect("Failed to fill rng block");
         let d_frame = stream.alloc_zeros::<u8>(frame_size).expect("Failed to allocate frame buffer on device");
 
         Self {
             ctx,
-            module,
-            render,
+            render: None,
             d_frame,
             rng_block,
             rng,
@@ -91,28 +98,63 @@ impl CudaWorld {
         }
     }
 
+    pub fn compile_ptx(&mut self) {
+        if self.gui.read().unwrap().compile_ptx {
+            let ptx_scr = load_ptx_src().expect("Failed to load PTX src");
+            let ptx_compilation = match cudarc::nvrtc::compile_ptx(ptx_scr) {
+                Err(CompileError::CompileError { nvrtc: _, options: _, log }) => {
+                    error!("{}", log.as_c_str().to_str().unwrap());
+                    Err(PtxError::CompileError)
+                },
+                Err(err) => Err(PtxError::CompileErrorOther(err)),
+                Ok(ptx) => {
+                    let module = self.ctx.load_module(ptx).expect("Failed to load PTX");
+                    module.load_function("render").map_err(PtxError::LoadFunction)
+                }
+            };
+            match ptx_compilation {
+                Ok(render) => {
+                    self.render = Some(render);
+                    self.gui.write().unwrap().compile_ptx = false;
+                }
+                Err(err) => {
+                    let mut gui = self.gui.write().unwrap();
+                    gui.render_msg = "PTX Compilation failed".into();
+                    gui.compile_ptx = false;
+                }
+            };
+        }
+    }
+
     pub fn render(&mut self, frame: &mut [u8], camera: &Camera) {
+        // check if ptx is compiled
+
+        if self.render.is_none() {
+            frame.iter_mut().enumerate().for_each(|(i, pixel)| {
+                *pixel = (i % 255usize) as u8;
+            });
+            return;
+        }
+
         let stream = self.ctx.default_stream();
-        let mut binding = stream.launch_builder(&self.render);
+        let mut binding = stream.launch_builder(self.render.as_ref().unwrap());
         if self.gui.read().expect("Gui can't be read").random {
             self.rng.fill_with_uniform(&mut self.rng_block).expect("Failed to fill rng block");
             self.gui.write().expect("Gui can't be written").random = false;
         };
 
-        let string: Rc<str> = {
+        let launch = {
             let gui = self.gui.read().expect("Gui can't be read");
             let builder = binding.arg(&self.rng_block).arg(&mut self.d_frame).arg(camera).arg(&gui.device_gui);
             let dim = gui.device_gui.block_dim;
             let launch_cfg = LaunchConfig {block_dim: (dim, 1, 1), grid_dim: ((camera.image_width * camera.image_height).div_ceil(gui.device_gui.block_dim), 1, 1), shared_mem_bytes: 0};
-            match unsafe {
-                builder.launch(launch_cfg)
-            } {
-                Ok(_) => {"No Issues".into()}
-                Err(err) => {err.error_name().unwrap().to_str().unwrap().into()}
-            }
+            unsafe { builder.launch(launch_cfg) }
         };
-        stream.memcpy_dtoh(&self.d_frame, frame).expect("Failed to copy device frames");
-        // self.gui.write().expect("Gui can't be written").render_msg = string;
+        if let Err(err) = launch {
+            self.gui.write().unwrap().render_msg = err.error_name().unwrap().to_str().unwrap().into();
+        } else {
+            stream.memcpy_dtoh(&self.d_frame, frame).expect("Failed to copy device frames");
+        }
     }
 }
 

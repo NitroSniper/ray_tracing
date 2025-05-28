@@ -24,7 +24,7 @@ __device__ float3 random_float3() {
 }
 __device__ float3 random_norm_float3() {
     for (int i = 0; i < 20; i++) {
-        float3 p = random_float3();
+        float3 p = sub(random_float3(), 0.5);
         if (dot(p, p) <= 1.0) return normalize(p);
     }
     return make_float3(1.0, 0.0, 0.0);
@@ -90,12 +90,14 @@ struct HitRecord : public Ownership<HitRecord> {
 struct Light : public Ownership<Light> {
     float3 color;
     Ray ray;
+    bool is_none;
 
     Light() = default;
 
-    __device__ Light(float3 c, Ray r)
+    __device__ Light(float3 c, Ray r, bool in)
     : color(c)
-    , ray(static_cast<Ray&&>(r)) {}
+    , ray(static_cast<Ray&&>(r))
+    , is_none(in) {}
 };
 
 struct Diffuse : public Ownership<Diffuse> {
@@ -107,19 +109,21 @@ struct Diffuse : public Ownership<Diffuse> {
     __device__ Light scatter(Ray& in_r, HitRecord& record) {
         float3 scatter_direction = add(record.normal, random_norm_float3());
         scatter_direction = float3_near_zero_mag(scatter_direction) ? record.normal : scatter_direction;
-        return Light(color, Ray(record.point, scatter_direction));
+        return Light(color, Ray(record.point, scatter_direction), true);
     }
 };
 
 struct Reflect : public Ownership<Reflect> {
     float3 color;
+    float fuzz;
 
     Reflect() = default;
 
-    __device__ Reflect(float3 c) : color(c) {}
+    __device__ Reflect(float3 c, float f) : color(c), fuzz(f < 1 ? fuzz : 1) {}
     __device__ Light scatter(Ray& in_r, HitRecord& record) {
         float3 reflected = float3_reflect(in_r.dir, record.normal);
-        return Light(color, Ray(record.point, reflected));
+        reflected = add(normalize(reflected), mul(random_norm_float3(), fuzz));
+        return Light(color, Ray(record.point, reflected), dot(reflected, record.normal) > 0);
     }
 };
 

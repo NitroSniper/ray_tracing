@@ -186,11 +186,12 @@ pub struct DebugGui {
     pub random: bool,
     pub total_render_ms: Duration,
     pub cuda_render_ms: Duration,
+    pub compile_ptx: bool,
     pub device_gui: DeviceGUI
 }
 impl Default for DebugGui {
     fn default() -> Self {
-        Self { render_msg: "".into(), random: false, total_render_ms: Duration::new(0, 0), cuda_render_ms: Duration::new(0, 0), device_gui: Default::default() }
+        Self { render_msg: "".into(), random: false, total_render_ms: Duration::new(0, 0), cuda_render_ms: Duration::new(0, 0), compile_ptx: true, device_gui: Default::default() }
     }
 }
 
@@ -219,7 +220,7 @@ impl DebugGui {
                     .clamp_to_range(true)
                     .trailing_fill(true)
             });
-        ui.add(egui::Slider::new(&mut self.device_gui.max_depth, 1..=20)
+        ui.add(egui::Slider::new(&mut self.device_gui.max_depth, 1..=50)
                     .text("Max Light Bounces")
                     .logarithmic(true)
                     .clamp_to_range(true)
@@ -233,6 +234,9 @@ impl DebugGui {
         );
         if ui.button("Generate New Random State").clicked() {
             self.random = true;
+        }
+        if ui.button("Compile PTX Again?").clicked() {
+            self.compile_ptx = true;
         }
         ui.add_space(8.0);
         ui.vertical_centered(|ui| {

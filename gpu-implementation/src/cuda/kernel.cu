@@ -129,4 +129,3 @@ extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, cons
     frame[idx] = to_pixel(make_float4_f3(rgb, 1.0f));
 
 }
-
