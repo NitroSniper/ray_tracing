@@ -1,16 +1,30 @@
-__device__ float3 ray_color(Ray r, Sphere* world, unsigned int world_size) {
+
+__device__ HitRecord hit_world(Ray& r, float2 t, Sphere* world, const unsigned int world_size) {
+    HitRecord record;
+    HitRecord best;
+    float closest_t_max = t.y;
+    for (int i = 0; i < world_size; i++) {
+        Sphere& s = world[i];
+        record = s.hit(r, make_float2(t.x, closest_t_max));
+        if (!record.is_none) {
+            closest_t_max = record.t;
+            best = static_cast<HitRecord&&>(record);
+        }
+    }
+    return best;
+}
+
+
+
+__device__ float3 ray_color(Ray r, Sphere* world, const unsigned int world_size) {
     float2 t = make_float2(0.0f, 1024.0f);
 
     // float3 color = make_float3(1.0f, 1.0f, 1.0f);
-    for (int i = 0; i < world_size; i++) {
-        Sphere& s = world[i];
-        HitRecord record = s.hit(r, t);
-        if (!record.is_none) {
-            float3 n = normalize(sub(r.at(record.t), make_float3(0.0, 0.0, -1.0)));
-            return mul(make_float3(n.x+1.0, n.y+1.0,n.z+1.0), 0.5);
-        }
+    HitRecord record = hit_world(r, t, world, world_size);
+    if (!record.is_none) {
+        float3 n = normalize(sub(r.at(record.t), make_float3(0.0, 0.0, -1.0)));
+        return mul(make_float3(n.x+1.0, n.y+1.0,n.z+1.0), 0.5);
     }
-
     float3 unit_dir = normalize(r.dir);
     float a = (unit_dir.y + 1.0f) * 0.5f;
     return add(mul(make_float3(1.0f, 1.0f, 1.0f), 1.0f-a), mul(make_float3(0.5f, 0.7f, 1.0f), a));
@@ -47,14 +61,13 @@ __device__ uchar4 to_pixel(float4 fpixel) {
 extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, Camera cam_g, GuiState gui_g) {
     // Load shared data
     __shared__ Camera cam;
-    __shared__ Sphere s;
     __shared__ GuiState gui;
     const unsigned int world_size = 2;
     __shared__ Sphere world[world_size];
     cam = static_cast<Camera&&>(cam_g);
     gui = static_cast<GuiState&&>(gui_g);
-    world[0] = Sphere(make_float3(0.0f,0.0f,-1.2f), 0.5f);
-    world[1] = Sphere(make_float3(0.0f, -100.5f,-1.0f), 100.0f);
+    world[1] = Sphere(make_float3(0.0f,0.0f,-1.2f), 0.5f);
+    world[0] = Sphere(make_float3(0.0f, -100.5f,-1.0f), 100.0f);
     __syncthreads();
 
     // if thread doesn't have a pixel
