@@ -26,6 +26,7 @@ pub mod cuda_types {
     }
 
     #[repr(C)]
+    #[derive(PartialEq)]
     pub struct DeviceGUI {
         pub sample2_per_pixel: u32,
         pub show_random: bool,
@@ -43,7 +44,7 @@ pub mod cuda_types {
 
 use cuda_types::Camera;
 use cuda_types::FloatSize;
-use crate::gui::Gui;
+use crate::gui::{DebugGui, Gui};
 
 pub struct CudaWorld {
     ctx: Arc<CudaContext>,
@@ -52,14 +53,14 @@ pub struct CudaWorld {
     d_frame: CudaSlice<u8>,
     rng_block: CudaSlice<u32>,
     rng: CudaRng,
-    gui: Rc<RwLock<Gui>>
+    gui: Rc<RwLock<DebugGui>>,
 }
 
 // const PTX_SRC: &str = concat!(include_str!("cuda/floatN_helper.cu"), include_str!("cuda/lib.cu"), include_str!("cuda/kernel.cu"));
 const PTX_SRC: &str = concat!(include_str!("cuda/floatN_helper.cu"), include_str!("cuda/library.cu"), include_str!("cuda/ray.cu"));
 
 impl CudaWorld {
-    pub fn new(frame_size: usize, gui: Rc<RwLock<Gui>>) -> Self {
+    pub fn new(frame_size: usize, gui: Rc<RwLock<DebugGui>>) -> Self {
         let ctx = cudarc::driver::CudaContext::new(0).expect("Failed to create CudaContext");
         let stream = ctx.default_stream();
         let rng = CudaRng::new(0, stream.clone()).expect("Failed to create CudaRng");

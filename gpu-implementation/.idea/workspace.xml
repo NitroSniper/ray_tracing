@@ -15,10 +15,8 @@
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a375a8b2-714e-49ed-841c-ae1b0c3a6cc0" name="Changes" comment="Sky with AA">
+    <list default="true" id="a375a8b2-714e-49ed-841c-ae1b0c3a6cc0" name="Changes" comment="EGUI with sample option">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/cuda/library.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda/library.cu" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/cuda/ray.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda/ray.cu" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/gui.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/ray_tracing.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/ray_tracing.rs" afterDir="false" />
@@ -151,7 +149,7 @@
       <workItem from="1747102802350" duration="17241000" />
       <workItem from="1747372793194" duration="3517000" />
       <workItem from="1748112656545" duration="16489000" />
-      <workItem from="1748198327490" duration="80832000" />
+      <workItem from="1748198327490" duration="83172000" />
     </task>
     <task id="LOCAL-00001" summary="Moved Cpu to own folder and added a basic GPU implementation program">
       <option name="closed" value="true" />
@@ -329,7 +327,15 @@
       <option name="project" value="LOCAL" />
       <updated>1748421457723</updated>
     </task>
-    <option name="localTasksCounter" value="23" />
+    <task id="LOCAL-00023" summary="EGUI with sample option">
+      <option name="closed" value="true" />
+      <created>1748426273263</created>
+      <option name="number" value="00023" />
+      <option name="presentableId" value="LOCAL-00023" />
+      <option name="project" value="LOCAL" />
+      <updated>1748426273263</updated>
+    </task>
+    <option name="localTasksCounter" value="24" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -369,6 +375,7 @@
     <MESSAGE value="Memory Issue. Need to implement without references and implicit Copy" />
     <MESSAGE value="Basic Screen" />
     <MESSAGE value="Sky with AA" />
-    <option name="LAST_COMMIT_MESSAGE" value="Sky with AA" />
+    <MESSAGE value="EGUI with sample option" />
+    <option name="LAST_COMMIT_MESSAGE" value="EGUI with sample option" />
   </component>
 </project>

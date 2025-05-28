@@ -1,7 +1,8 @@
+use std::fmt::Debug;
 use std::rc::Rc;
 use std::sync::{Arc, RwLock};
 use std::time::Duration;
-use egui::{ClippedPrimitive, Context, Slider, TexturesDelta, ViewportId};
+use egui::{reset_button, ClippedPrimitive, Context, Slider, TexturesDelta, Ui, ViewportId, Widget};
 use egui_wgpu::{Renderer, ScreenDescriptor};
 use pixels::{wgpu, PixelsContext};
 use winit::event_loop::EventLoopWindowTarget;
@@ -19,7 +20,7 @@ pub(crate) struct Framework {
     textures: TexturesDelta,
 
     // State for the GUI
-    pub gui: Rc<RwLock<Gui>>,
+    pub gui: Gui,
 }
 
 impl Framework {
@@ -47,7 +48,7 @@ impl Framework {
         };
         let renderer = Renderer::new(pixels.device(), pixels.render_texture_format(), None, 1);
         let textures = TexturesDelta::default();
-        let gui = Rc::new(RwLock::new(Gui::new()));
+        let gui = Gui::default();
 
         Self {
             egui_ctx,
@@ -83,8 +84,7 @@ impl Framework {
         let raw_input = self.egui_state.take_egui_input(window);
         let output = self.egui_ctx.run(raw_input, |egui_ctx| {
             // Draw the demo application.
-            let mut gui = self.gui.write().expect("Gui cannot be read");
-            gui.ui(egui_ctx);
+            self.gui.ui(egui_ctx);
         });
 
         self.textures.append(output.textures_delta);
@@ -148,19 +148,17 @@ impl Framework {
 pub struct Gui {
     /// Only show the egui window when true.
     window_open: bool,
-    // When random button is pressed
-    pub random: bool,
-    pub total_render_ms: Duration,
-    pub cuda_render_ms: Duration,
-    pub device_gui: DeviceGUI
+    pub debug: Rc<RwLock<DebugGui>>
 }
 
-impl Gui {
-    /// Create a `Gui`.
-    fn new() -> Self {
-        Self { window_open: true, random: false, total_render_ms: Duration::new(0, 0), cuda_render_ms: Duration::new(0, 0), device_gui: Default::default() }
+impl Default for Gui {
+    fn default() -> Self {
+        Self {window_open: false, debug: Rc::new(RwLock::new(DebugGui::default()))}
     }
+}
 
+
+impl Gui {
     /// Create the UI using egui.
     fn ui(&mut self, ctx: &Context) {
         egui::TopBottomPanel::top("menubar_container").show(ctx, |ui| {
@@ -177,41 +175,56 @@ impl Gui {
         egui::Window::new("Debug Menu")
             .open(&mut self.window_open)
             .show(ctx, |ui| {
-                ui.label("This is the debug menu for the ray tracer.");
-                ui.separator();
-                ui.heading("Statistic");
-                ui.label("Hold `LeftAlt` down to pause statistic");
-                ui.add_space(12.0);
-                ui.label(format!("Total Render Duration: {:?}", self.total_render_ms));
-                ui.label(format!("Total Cuda Render Duration: {:?}", self.cuda_render_ms));
-
-
-
-                ui.separator();
-                ui.heading("Options");
-                ui.checkbox(&mut self.device_gui.show_random, "Show Random State?");
-                ui.checkbox(&mut self.device_gui.random_norm, "Normalise Random State?");
-                ui.add(
-                    {
-                        let samples = self.device_gui.sample2_per_pixel.pow(2);
-                        egui::Slider::new(&mut self.device_gui.sample2_per_pixel, 1..=50)
-                            .text(format!("{:?} rays per pixel (sample^2 per pixel)", samples))
-                            .logarithmic(true)
-                            .clamp_to_range(true)
-                            .trailing_fill(true)
-                    }
-                );
-                if ui.button("Generate New Random State").clicked() {
-                    self.random = true;
-                }
-                // ui.horizontal(|ui| {
-                //     ui.spacing_mut().item_spacing.x /= 2.0;
-                //     ui.label("Learn more about egui at");
-                //     ui.hyperlink("https://docs.rs/egui");
-                //     if ui.button("Hello").clicked() {
-                //         println!("Clicked Idk");
-                //     }
-                // });
+                self.debug.write().expect("Fetch inner debug menu").ui(ui);
             });
+    }
+}
+
+#[derive(PartialEq)]
+pub struct DebugGui {
+    pub random: bool,
+    pub total_render_ms: Duration,
+    pub cuda_render_ms: Duration,
+    pub device_gui: DeviceGUI
+}
+impl Default for DebugGui {
+    fn default() -> Self {
+        Self { random: false, total_render_ms: Duration::new(0, 0), cuda_render_ms: Duration::new(0, 0), device_gui: Default::default() }
+    }
+}
+
+impl DebugGui {
+    fn ui(&mut self, ui: &mut Ui) {
+        ui.label("This is the debug menu for the ray tracer.");
+        ui.separator();
+        ui.heading("Statistic");
+        ui.label("Hold `LeftAlt` down to pause statistic");
+        ui.add_space(8.0);
+        ui.label(format!("Total Render Duration: {:?}", self.total_render_ms));
+        ui.label(format!("Total Cuda Render Duration: {:?}", self.cuda_render_ms));
+
+
+
+        ui.separator();
+        ui.heading("Options");
+        ui.checkbox(&mut self.device_gui.show_random, "Show Random State?");
+        ui.checkbox(&mut self.device_gui.random_norm, "Normalise Random State?");
+        ui.add(
+            {
+                let samples = self.device_gui.sample2_per_pixel.pow(2);
+                egui::Slider::new(&mut self.device_gui.sample2_per_pixel, 1..=50)
+                    .text(format!("{:?} rays per pixel (sample^2 per pixel)", samples))
+                    .logarithmic(true)
+                    .clamp_to_range(true)
+                    .trailing_fill(true)
+            }
+        );
+        if ui.button("Generate New Random State").clicked() {
+            self.random = true;
+        }
+        ui.add_space(8.0);
+        ui.vertical_centered(|ui| {
+            egui::reset_button(ui, self);
+        });
     }
 }

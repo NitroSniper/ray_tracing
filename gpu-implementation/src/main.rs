@@ -48,8 +48,8 @@ fn main() -> Result<(), Error> {
         );
         (pixels, framework)
     };
-    let gui = framework.gui.clone();
-    let mut cuda_world = CudaWorld::new(pixels.frame().len(), gui.clone());
+    let debug = framework.gui.debug.clone();
+    let mut cuda_world = CudaWorld::new(pixels.frame().len(), debug.clone());
 
     let mut start = Instant::now();
     let mut cuda_render_ms = start.elapsed();
@@ -100,8 +100,8 @@ fn main() -> Result<(), Error> {
                 total_render_ms = start.elapsed();
 
                 if !input.key_held(KeyCode::AltLeft) {
-                    gui.write().expect("RwLock write fail").total_render_ms = total_render_ms;
-                    gui.write().expect("RwLock write fail").cuda_render_ms = cuda_render_ms;
+                    debug.write().expect("RwLock write fail").total_render_ms = total_render_ms;
+                    debug.write().expect("RwLock write fail").cuda_render_ms = cuda_render_ms;
                 }
             },
             Event::WindowEvent {event, ..} => {
