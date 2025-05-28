@@ -1,21 +1,39 @@
+struct material_record {
+    hit_record rec;
+    material mat;
+};
+
+__device__ material_record hit_world(ray r, float2 t, sphere* world, int world_size) {
+    hit_record temp_rec;
+    hit_record record;
+    material mat = diffuse(make_float3(1.0f, 1.0f, 1.0f));
+    float closest_t_max = t.y;
+    for (int i = 0; i < world_size; i++) {
+        sphere s = world[i];
+        temp_rec = s.hit(r, make_float2(t.x, closest_t_max));
+        if (!temp_rec.is_none) {
+            mat = (material) s.mat;
+            closest_t_max = temp_rec.t;
+            record = temp_rec;
+        }
+    }
+    return {record, mat};
+}
+
+
 __device__ float3 ray_color(ray r, sphere* world, int world_size) {
 //     sphere s = {make_float3(0.0,0.0,-1.0), 0.5f};
 //     hit_record record = s.hit(r, make_float2(0.001, 1024.0));
     float3 color = make_float3(1.0f, 1.0f, 1.0f);
 
-
     for (int depth = 10; depth >= 0; depth--) {
         bool bounce = false;
-        for (int i = 0; i < world_size; i++) {
-            sphere s = world[i];
-            hit_record record = s.hit(r, {0.001f, 1024.0f});
-            if (!record.is_none) {
-                light l = s.mat.scatter(r, record);
-                r = l.ray;
-                color = mul(color, l.color);
-                bounce = true;
-                break;
-            }
+        material_record record = hit_world(r, {0.001f, 1024.0f}, world, world_size);
+        if (!record.rec.is_none) {
+            light l = record.mat.scatter(r, record.rec);
+            r = l.ray;
+            color = mul(color, l.color);
+//             bounce = true;
         }
         if (bounce) continue;
         float3 unit_dir = normalize(r.dir);
@@ -24,15 +42,6 @@ __device__ float3 ray_color(ray r, sphere* world, int world_size) {
         break;
     }
     return color;
-
-
-//     if (!record.is_none) {
-//         float3 n = normalize(sub(ray_at(r, record.t), make_float3(0.0, 0.0, -1.0)));
-//         return mul(make_float3(n.x+1.0, n.y+1.0,n.z+1.0), 0.5);
-//     }
-
-
-
 }
 
 __device__ ray get_ray(

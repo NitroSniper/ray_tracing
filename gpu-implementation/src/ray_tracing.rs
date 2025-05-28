@@ -95,8 +95,10 @@ impl CudaWorld {
         {
             let gui = self.gui.read().expect("Gui can't be read");
             let builder = binding.arg(&self.rng_block).arg(&mut self.d_frame).arg(camera).arg(&gui.device_gui);
+            let dim = 1024;
+            let launch_cfg = LaunchConfig {block_dim: (dim, 1, 1), grid_dim: ((camera.image_width * camera.image_height).div_ceil(dim), 1, 1), shared_mem_bytes: 0};
             unsafe {
-                builder.launch(LaunchConfig::for_num_elems(camera.image_width * camera.image_height))
+                builder.launch(launch_cfg)
             }.expect("Failed to launch kernel");
         };
 

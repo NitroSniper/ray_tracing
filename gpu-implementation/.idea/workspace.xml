@@ -7,10 +7,11 @@
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a375a8b2-714e-49ed-841c-ae1b0c3a6cc0" name="Changes" comment="I can render the ground?!?">
+    <list default="true" id="a375a8b2-714e-49ed-841c-ae1b0c3a6cc0" name="Changes" comment="Render Sphere, but need to get closest">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/cuda/kernel.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda/kernel.cu" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/cuda/lib.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda/lib.cu" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/ray_tracing.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/ray_tracing.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -132,7 +133,7 @@
       <workItem from="1747102802350" duration="17241000" />
       <workItem from="1747372793194" duration="3517000" />
       <workItem from="1748112656545" duration="16489000" />
-      <workItem from="1748198327490" duration="54926000" />
+      <workItem from="1748198327490" duration="69630000" />
     </task>
     <task id="LOCAL-00001" summary="Moved Cpu to own folder and added a basic GPU implementation program">
       <option name="closed" value="true" />
@@ -278,7 +279,15 @@
       <option name="project" value="LOCAL" />
       <updated>1748348676511</updated>
     </task>
-    <option name="localTasksCounter" value="19" />
+    <task id="LOCAL-00019" summary="Render Sphere, but need to get closest">
+      <option name="closed" value="true" />
+      <created>1748349993144</created>
+      <option name="number" value="00019" />
+      <option name="presentableId" value="LOCAL-00019" />
+      <option name="project" value="LOCAL" />
+      <updated>1748349993144</updated>
+    </task>
+    <option name="localTasksCounter" value="20" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -314,6 +323,7 @@
     <MESSAGE value="Global Random and More GUI options" />
     <MESSAGE value="Broken Code, need to go to generic templates" />
     <MESSAGE value="I can render the ground?!?" />
-    <option name="LAST_COMMIT_MESSAGE" value="I can render the ground?!?" />
+    <MESSAGE value="Render Sphere, but need to get closest" />
+    <option name="LAST_COMMIT_MESSAGE" value="Render Sphere, but need to get closest" />
   </component>
 </project>

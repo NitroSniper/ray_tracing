@@ -41,17 +41,17 @@ typedef struct {
     float3 center, pixel00_loc, pixel_delta;
 } camera;
 
-typedef struct {
+struct light {
     float3 color;
     ray ray;
-} light;
+};
 
-typedef struct {
+struct hit_record {
     bool is_none;
     float3 point, normal;
     float t;
     bool front_face;
-} hit_record;
+};
 
 struct diffuse {
      float3 fcolor;
@@ -75,29 +75,30 @@ struct reflect {
 };
 
 
-enum material_type {DIFFUSE, REFLECT};
+enum class MaterialType {
+    DIFFUSE=1,
+    REFLECT,
+};
 
 struct material {
-    material_type type;
+    MaterialType type;
 
     union {
         diffuse diff;
         reflect refl;
     };
 
-    __device__ material(const diffuse d) : type(DIFFUSE), diff(d) {}
-    __device__ material(const reflect r) : type(REFLECT), refl(r) {}
+    __device__ material(const diffuse d) : type(MaterialType::DIFFUSE), diff(d) {}
+    __device__ material(const reflect r) : type(MaterialType::REFLECT), refl(r) {}
     __device__ light scatter(const ray in_r, const hit_record record) {
         switch (type) {
-            case DIFFUSE:
+            case MaterialType::DIFFUSE:
                 return diff.scatter(in_r, record);
-            case REFLECT:
+            case MaterialType::REFLECT:
                 return refl.scatter(in_r, record);
         }
-        return light{};
     }
 };
-
 
 struct sphere {
     float3 center;
