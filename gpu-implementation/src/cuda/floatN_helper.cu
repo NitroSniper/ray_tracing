@@ -1,4 +1,6 @@
 // Float 4
+
+
 __forceinline__ __device__ float4 mul(const float4 a, const float s) {
     return make_float4(a.x*s, a.y*s, a.z*s, a.w*s);
 }

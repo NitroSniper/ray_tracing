@@ -1,13 +1,14 @@
-use std::fmt::Debug;
-use std::rc::Rc;
-use std::sync::{Arc, RwLock};
-use std::time::Duration;
-use egui::{reset_button, ClippedPrimitive, Context, Slider, TexturesDelta, Ui, ViewportId, Widget};
+use crate::ray_tracing::camera::Camera;
+use crate::ray_tracing::cuda_types::DeviceGUI;
+use egui::{ClippedPrimitive, Context, TexturesDelta, Ui, ViewportId, Widget};
 use egui_wgpu::{Renderer, ScreenDescriptor};
 use pixels::{wgpu, PixelsContext};
+use std::fmt::Debug;
+use std::rc::Rc;
+use std::sync::RwLock;
+use std::time::Duration;
 use winit::event_loop::EventLoopWindowTarget;
 use winit::window::Window;
-use crate::ray_tracing::cuda_types::DeviceGUI;
 
 /// Manages all state required for rendering egui over `Pixels`.
 pub(crate) struct Framework {
@@ -31,6 +32,7 @@ impl Framework {
         height: u32,
         scale_factor: f32,
         pixels: &pixels::Pixels,
+        camera: Rc<RwLock<Camera>>,
     ) -> Self {
         let max_texture_size = pixels.device().limits().max_texture_dimension_2d as usize;
 
@@ -48,7 +50,7 @@ impl Framework {
         };
         let renderer = Renderer::new(pixels.device(), pixels.render_texture_format(), None, 1);
         let textures = TexturesDelta::default();
-        let gui = Gui::default();
+        let gui = Gui::new(camera);
 
         Self {
             egui_ctx,
@@ -148,15 +150,19 @@ impl Framework {
 pub struct Gui {
     /// Only show the egui window when true.
     window_open: bool,
-    pub debug: Rc<RwLock<DebugGui>>
+    pub debug: Rc<RwLock<DebugGui>>,
+    camera: Rc<RwLock<Camera>>,
 }
 
-impl Default for Gui {
-    fn default() -> Self {
-        Self {window_open: false, debug: Rc::new(RwLock::new(DebugGui::default()))}
+impl Gui {
+    fn new(camera: Rc<RwLock<Camera>>) -> Self {
+        Self {
+            window_open: false,
+            debug: Rc::new(RwLock::new(DebugGui::default())),
+            camera,
+        }
     }
 }
-
 
 impl Gui {
     /// Create the UI using egui.
@@ -174,8 +180,11 @@ impl Gui {
 
         egui::Window::new("Debug Menu")
             .open(&mut self.window_open)
-            .show(ctx, |ui| {
-                self.debug.write().expect("Fetch inner debug menu").ui(ui);
+            .show(ctx, |ui| unsafe {
+                self.debug
+                    .write()
+                    .expect("Fetch inner debug menu")
+                    .ui(ui, self.camera.clone());
             });
     }
 }
@@ -187,16 +196,23 @@ pub struct DebugGui {
     pub total_render_ms: Duration,
     pub cuda_render_ms: Duration,
     pub compile_ptx: bool,
-    pub device_gui: DeviceGUI
+    pub device_gui: DeviceGUI,
 }
 impl Default for DebugGui {
     fn default() -> Self {
-        Self { render_msg: "".into(), random: false, total_render_ms: Duration::new(0, 0), cuda_render_ms: Duration::new(0, 0), compile_ptx: true, device_gui: Default::default() }
+        Self {
+            render_msg: "".into(),
+            random: false,
+            total_render_ms: Duration::new(0, 0),
+            cuda_render_ms: Duration::new(0, 0),
+            compile_ptx: true,
+            device_gui: Default::default(),
+        }
     }
 }
 
 impl DebugGui {
-    fn ui(&mut self, ui: &mut Ui) {
+    unsafe fn ui(&mut self, ui: &mut Ui, camera: Rc<RwLock<Camera>>) {
         ui.label("This is the debug menu for the ray tracer.");
         ui.separator();
         ui.heading("Statistic");
@@ -204,33 +220,59 @@ impl DebugGui {
         ui.add_space(8.0);
         ui.label(format!("Current State: {:?}", self.render_msg));
         ui.label(format!("Total Render Duration: {:?}", self.total_render_ms));
-        ui.label(format!("Total Cuda Render Duration: {:?}", self.cuda_render_ms));
-
-
+        ui.label(format!(
+            "Total Cuda Render Duration: {:?}",
+            self.cuda_render_ms
+        ));
+        ui.separator();
+        ui.heading("Camera");
+        let mut camera = camera.write().unwrap();
+        ui.add(
+            egui::Slider::new(&mut camera.vfov, 10.0..=100.0)
+                .text("FOV")
+                .logarithmic(true),
+                .clamp_to_range(true),
+        );
+        ui.add(
+            egui::Slider::new(&mut camera.lookfrom[0], -10.0..=10.0)
+                .text("Camera X")
+                .clamp_to_range(true),
+        );
+        ui.add(
+            egui::Slider::new(&mut camera.lookfrom[1], -10.0..=10.0)
+                .text("Camera Y")
+                .clamp_to_range(true),
+        );
+        ui.add(
+            egui::Slider::new(&mut camera.lookfrom[2], -10.0..=10.0)
+                .text("Camera Z")
+                .clamp_to_range(true),
+        );
 
         ui.separator();
         ui.heading("Options");
         ui.checkbox(&mut self.device_gui.show_random, "Show Random State?");
         ui.checkbox(&mut self.device_gui.random_norm, "Normalise Random State?");
         ui.add({
-                let samples = self.device_gui.sample2_per_pixel.pow(2);
-                egui::Slider::new(&mut self.device_gui.sample2_per_pixel, 1..=50)
-                    .text(format!("{:?} rays per pixel (sample^2 per pixel)", samples))
-                    .logarithmic(true)
-                    .clamp_to_range(true)
-                    .trailing_fill(true)
-            });
-        ui.add(egui::Slider::new(&mut self.device_gui.max_depth, 1..=50)
-                    .text("Max Light Bounces")
-                    .logarithmic(true)
-                    .clamp_to_range(true)
-                    .trailing_fill(true)
+            let samples = self.device_gui.sample2_per_pixel.pow(2);
+            egui::Slider::new(&mut self.device_gui.sample2_per_pixel, 1..=50)
+                .text(format!("{:?} rays per pixel (sample^2 per pixel)", samples))
+                .logarithmic(true)
+                .clamp_to_range(true)
+                .trailing_fill(true)
+        });
+        ui.add(
+            egui::Slider::new(&mut self.device_gui.max_depth, 1..=50)
+                .text("Max Light Bounces")
+                .logarithmic(true)
+                .clamp_to_range(true)
+                .trailing_fill(true),
         );
         ui.add(
             egui::Slider::new(&mut self.device_gui.block_dim, 128..=1024)
-                    .text("Block Dim Amount")
-                    .clamp_to_range(true)
-                    .trailing_fill(true)
+                .text("Block Dim Amount")
+                .clamp_to_range(true)
+                .trailing_fill(true),
         );
         if ui.button("Generate New Random State").clicked() {
             self.random = true;

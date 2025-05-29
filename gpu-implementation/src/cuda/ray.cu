@@ -21,7 +21,7 @@ __device__ LightRecord hit_world(Ray& r, float2 t, Sphere* world, const unsigned
 
 __device__ float3 ray_color(Ray r, Sphere* world, const unsigned int world_size, unsigned int max_depth) {
     bool bounce;
-    float2 t = make_float2(0.001f, 1024.0f);
+    float2 t = make_float2(0.001f, 10024.0f);
     float3 color = make_float3(1.0f, 1.0f, 1.0f);
 
     float3 nothing = make_float3(0.0f, 0.0f, 0.0f);
@@ -59,7 +59,20 @@ __device__ Ray get_ray(
 	float sample_i = (float)(sample % sample_len) / sample_len;
 	float sample_j = (float)(sample / sample_len) / sample_len;
 
-    float3 pixel_center = add(mul(make_float3((float)i+sample_i, (float)j+sample_j, 0.0f), cam.pixel_delta), cam.pixel00_loc);
+	float3 pixel_center = add(
+	    cam.pixel00_loc,
+	    add(
+	        mul(
+	            cam.pixel_delta_u,
+	            (float)i + sample_i
+	        ),
+	        mul(
+	            cam.pixel_delta_v,
+	            (float)j + sample_j
+	        )
+	    )
+	);
+
     Ray r(cam.center, sub(pixel_center, cam.center));
     return r;
 }
@@ -80,10 +93,11 @@ extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, Came
     // Load shared data
     const unsigned int world_size = 4;
     Sphere world[world_size];
+
     world[0] = Sphere(make_float3(0.0f, -100.5f,-1.0f), 100.0f, Diffuse(make_float3(0.8f,0.8f,0.0f)));
     world[1] = Sphere(make_float3(0.0f,0.0f,-1.2f), 0.5f, Diffuse(make_float3(0.1f,0.2f,0.5f)));
-    world[2] = Sphere(make_float3(-1.0f,0.0f,-1.2f), 0.5f, Reflect(make_float3(0.8f,0.8f,0.8f), 0.3f));
-    world[3] = Sphere(make_float3(1.0f,0.0f,-1.2f), 0.5f, Reflect(make_float3(0.8f,0.6f,0.2f), 1.0f));
+    world[2] = Sphere(make_float3(-1.0,0.0f,-1.2f), 0.5f, Reflect(make_float3(0.8f,0.8f,0.8f), 0.3f));
+    world[3] = Sphere(make_float3(1.0,0.0f,-1.2f), 0.5f, Reflect(make_float3(0.8f,0.6f,0.2f), 1.0f));
 
     // if thread doesn't have a pixel
 	unsigned int idx = gui.block_dim*blockIdx.x + threadIdx.x;

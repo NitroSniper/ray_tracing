@@ -15,11 +15,9 @@
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a375a8b2-714e-49ed-841c-ae1b0c3a6cc0" name="Changes" comment="Implemented code for Material">
+    <list default="true" id="a375a8b2-714e-49ed-841c-ae1b0c3a6cc0" name="Changes" comment="Implemented Fuzzyness??">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/cuda/floatN_helper.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda/floatN_helper.cu" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/cuda/kernel.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda/kernel.cu" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/cuda/lib.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda/lib.cu" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/cuda/library.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda/library.cu" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/cuda/ray.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda/ray.cu" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/gui.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui.rs" afterDir="false" />
@@ -42,6 +40,9 @@
       </list>
     </option>
   </component>
+  <component name="FormatOnSaveOptions">
+    <option name="myRunOnSave" value="true" />
+  </component>
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$/.." />
     <option name="RESET_MODE" value="HARD" />
@@ -60,6 +61,9 @@
 }</component>
   <component name="MacroExpansionManager">
     <option name="directoryName" value="6KnCgKdf" />
+  </component>
+  <component name="OptimizeOnSaveOptions">
+    <option name="myRunOnSave" value="true" />
   </component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 5
@@ -90,7 +94,7 @@
     "org.rust.cargo.project.model.PROJECT_DISCOVERY": "true",
     "org.rust.cargo.project.model.impl.CargoExternalSystemProjectAware.subscribe.first.balloon": "",
     "org.rust.first.attach.projects": "true",
-    "settings.editor.selected.configurable": "com.maddyhome.idea.vim.ui.VimEmulationConfigurable",
+    "settings.editor.selected.configurable": "actions.on.save",
     "vue.rearranger.settings.migration": "true"
   }
 }]]></component>
@@ -373,7 +377,15 @@
       <option name="project" value="LOCAL" />
       <updated>1748438946457</updated>
     </task>
-    <option name="localTasksCounter" value="28" />
+    <task id="LOCAL-00028" summary="Implemented Fuzzyness??">
+      <option name="closed" value="true" />
+      <created>1748473103263</created>
+      <option name="number" value="00028" />
+      <option name="presentableId" value="LOCAL-00028" />
+      <option name="project" value="LOCAL" />
+      <updated>1748473103263</updated>
+    </task>
+    <option name="localTasksCounter" value="29" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -391,7 +403,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="GPU renders a coloured screen pixels" />
     <MESSAGE value="Want to move to Cuda Library" />
     <MESSAGE value="Starting to move to Cuda Library" />
     <MESSAGE value="Blue to white Gradient" />
@@ -416,6 +427,7 @@
     <MESSAGE value="Multiple Sphere with coloured Normals" />
     <MESSAGE value="Implemented Hit Sphere" />
     <MESSAGE value="Implemented code for Material" />
-    <option name="LAST_COMMIT_MESSAGE" value="Implemented code for Material" />
+    <MESSAGE value="Implemented Fuzzyness??" />
+    <option name="LAST_COMMIT_MESSAGE" value="Implemented Fuzzyness??" />
   </component>
 </project>

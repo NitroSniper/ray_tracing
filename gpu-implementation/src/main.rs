@@ -1,31 +1,33 @@
 #![deny(clippy::all)]
 
-mod ray_tracing;
 mod gui;
+mod ray_tracing;
 
-use std::time::Instant;
-use crate::ray_tracing::{CudaWorld};
 use crate::gui::Framework;
+use crate::ray_tracing::camera::Camera;
+use crate::ray_tracing::CudaWorld;
 use error_iter::ErrorIter as _;
 use log::error;
 use pixels::{Error, Pixels, SurfaceTexture};
+use std::rc::Rc;
+use std::sync::RwLock;
+use std::time::Instant;
 use winit::dpi::LogicalSize;
 use winit::event::{Event, WindowEvent};
 use winit::event_loop::EventLoop;
 use winit::keyboard::KeyCode;
 use winit::window::WindowBuilder;
 use winit_input_helper::WinitInputHelper;
-use crate::ray_tracing::cuda_types::Camera;
 
 const WIDTH: u32 = 1280;
 const ASPECT_RATIO: f32 = 16.0 / 9.0;
 fn main() -> Result<(), Error> {
+    let camera: Rc<RwLock<Camera>> = RwLock::new(Camera::new(ASPECT_RATIO, WIDTH)).into();
     env_logger::init();
-    let mut camera = Camera::new(ASPECT_RATIO, WIDTH);
     let event_loop = EventLoop::new().unwrap();
     let mut input = WinitInputHelper::new();
     let window = {
-        let size = LogicalSize::new(WIDTH as f64, camera.image_height as f64);
+        let size = LogicalSize::new(WIDTH as f64, camera.read().unwrap().image_height as f64);
         WindowBuilder::new()
             .with_title("GPU Implementation")
             .with_inner_size(size)
@@ -38,13 +40,18 @@ fn main() -> Result<(), Error> {
         let window_size = window.inner_size();
         let scale_factor = window.scale_factor() as f32;
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        let pixels = Pixels::new(camera.image_width, camera.image_height, surface_texture)?;
+        let pixels = Pixels::new(
+            camera.read().unwrap().image_width,
+            camera.read().unwrap().image_height,
+            surface_texture,
+        )?;
         let framework = Framework::new(
             &event_loop,
             window_size.width,
             window_size.height,
             scale_factor,
             &pixels,
+            camera.clone(),
         );
         (pixels, framework)
     };
@@ -56,7 +63,6 @@ fn main() -> Result<(), Error> {
     let mut total_render_ms = start.elapsed();
 
     let res = event_loop.run(|event, elwt| {
-
         // Handle input events
         let _ = cuda_world.compile_ptx();
         if input.update(&event) {
@@ -65,7 +71,6 @@ fn main() -> Result<(), Error> {
                 elwt.exit();
                 return;
             }
-
 
             // Resize the window
             if let Some(size) = input.window_resized() {
@@ -86,7 +91,7 @@ fn main() -> Result<(), Error> {
             } => {
                 framework.prepare(&window);
                 start = Instant::now();
-                cuda_world.render(pixels.frame_mut(), &camera);
+                cuda_world.render(pixels.frame_mut(), camera.clone());
                 cuda_render_ms = start.elapsed();
                 let render_result = pixels.render_with(|encoder, render_target, context| {
                     context.scaling_renderer.render(encoder, render_target);
@@ -104,13 +109,12 @@ fn main() -> Result<(), Error> {
                     debug.write().expect("RwLock write fail").total_render_ms = total_render_ms;
                     debug.write().expect("RwLock write fail").cuda_render_ms = cuda_render_ms;
                 }
-            },
-            Event::WindowEvent {event, ..} => {
+            }
+            Event::WindowEvent { event, .. } => {
                 framework.handle_event(&window, &event);
             }
-            _ => ()
+            _ => (),
         }
-
     });
     res.map_err(|e| Error::UserDefined(Box::new(e)))
 }

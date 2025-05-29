@@ -53,11 +53,33 @@ public:
 
 struct Camera : public Ownership<Camera> {
     float aspect_ratio;
-    unsigned int image_width, image_height;
-    float3 center, pixel00_loc, pixel_delta;
+    unsigned int image_width;
+    unsigned int samples_per_pixel;
+    unsigned int max_depth;
+    float vfov;
+    float3 lookfrom;
+    float3 lookat;
+    float3 vup;
+
+    unsigned int image_height;
+    float pixel_samples_scale;
+    float3 center;
+    float3 pixel00_loc;
+    float3 pixel_delta_u;
+    float3 pixel_delta_v;
+    float3 u;
+    float3 v;
+    float3 w;
 
     Camera() = default;
 };
+// struct Camera : public Ownership<Camera> {
+//     float aspect_ratio, vfov;
+//     unsigned int image_width, image_height;
+//     float3 center, pixel00_loc, pixel_delta;
+//
+//     Camera() = default;
+// };
 
 
 struct GuiState : public Ownership<GuiState> {
@@ -119,11 +141,11 @@ struct Reflect : public Ownership<Reflect> {
 
     Reflect() = default;
 
-    __device__ Reflect(float3 c, float f) : color(c), fuzz(f < 1 ? fuzz : 1) {}
+    __device__ Reflect(float3 c, float f) : color(c), fuzz(f < 1.0f ? f : 1.0f) {}
     __device__ Light scatter(Ray& in_r, HitRecord& record) {
         float3 reflected = float3_reflect(in_r.dir, record.normal);
         reflected = add(normalize(reflected), mul(random_norm_float3(), fuzz));
-        return Light(color, Ray(record.point, reflected), dot(reflected, record.normal) > 0);
+        return Light(color, Ray(record.point, reflected), true);
     }
 };
 
