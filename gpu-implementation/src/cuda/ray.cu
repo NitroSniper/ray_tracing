@@ -91,13 +91,19 @@ __device__ uchar4 to_pixel(float4 fpixel) {
 
 extern "C" __global__ void render(uint64_t *rng_state, uchar4 *const frame, Camera cam, GuiState gui) {
     // Load shared data
-    const unsigned int world_size = 4;
+    const unsigned int world_size = 9;
     Sphere world[world_size];
 
     world[0] = Sphere(make_float3(0.0f, -100.5f,-1.0f), 100.0f, Diffuse(make_float3(0.8f,0.8f,0.0f)));
     world[1] = Sphere(make_float3(0.0f,0.0f,-1.2f), 0.5f, Diffuse(make_float3(0.1f,0.2f,0.5f)));
     world[2] = Sphere(make_float3(-1.0,0.0f,-1.2f), 0.5f, Reflect(make_float3(0.8f,0.8f,0.8f), 0.3f));
     world[3] = Sphere(make_float3(1.0,0.0f,-1.2f), 0.5f, Reflect(make_float3(0.8f,0.6f,0.2f), 1.0f));
+    world[4] = Sphere(make_float3(1.0, 0.0f, -3.2f), 0.5f, Reflect(make_float3(0.8f,0.6f,0.2f), 0.0f));
+    // Reflection
+    world[5] = Sphere(make_float3(0.0, 0.0f, -50.0f), 25.0f, Reflect(make_float3(0.9f,0.9f,0.9f), 0.0f));
+    world[6] = Sphere(make_float3(0.0, 0.0f, -110.0f), 25.0f, Reflect(make_float3(0.9f,0.9f,0.9f), 0.0f));
+    world[7] = Sphere(make_float3(2.0,0.0f, -80.0f), 0.5f, Diffuse(make_float3(0.8f,0.6f,0.2f)));
+    world[8] = Sphere(make_float3(-2.0,0.0f, -80.0f), 0.5f, Reflect(make_float3(0.8f,0.6f,0.2f), 0.3f));
 
     // if thread doesn't have a pixel
 	unsigned int idx = gui.block_dim*blockIdx.x + threadIdx.x;

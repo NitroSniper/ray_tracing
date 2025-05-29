@@ -15,14 +15,10 @@
     <cargoProject FILE="$PROJECT_DIR$/Cargo.toml" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="a375a8b2-714e-49ed-841c-ae1b0c3a6cc0" name="Changes" comment="Implemented Fuzzyness??">
+    <list default="true" id="a375a8b2-714e-49ed-841c-ae1b0c3a6cc0" name="Changes" comment="Nice GUI stuff">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/cuda/floatN_helper.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda/floatN_helper.cu" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/cuda/library.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda/library.cu" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/cuda/ray.cu" beforeDir="false" afterPath="$PROJECT_DIR$/src/cuda/ray.cu" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/gui.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/gui.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/main.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/main.rs" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/src/ray_tracing.rs" beforeDir="false" afterPath="$PROJECT_DIR$/src/ray_tracing.rs" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -385,7 +381,15 @@
       <option name="project" value="LOCAL" />
       <updated>1748473103263</updated>
     </task>
-    <option name="localTasksCounter" value="29" />
+    <task id="LOCAL-00029" summary="Nice GUI stuff">
+      <option name="closed" value="true" />
+      <created>1748488523182</created>
+      <option name="number" value="00029" />
+      <option name="presentableId" value="LOCAL-00029" />
+      <option name="project" value="LOCAL" />
+      <updated>1748488523182</updated>
+    </task>
+    <option name="localTasksCounter" value="30" />
     <servers />
   </component>
   <component name="TypeScriptGeneratedFilesManager">
@@ -403,7 +407,6 @@
     </option>
   </component>
   <component name="VcsManagerConfiguration">
-    <MESSAGE value="Want to move to Cuda Library" />
     <MESSAGE value="Starting to move to Cuda Library" />
     <MESSAGE value="Blue to white Gradient" />
     <MESSAGE value="Red Sphere" />
@@ -428,6 +431,7 @@
     <MESSAGE value="Implemented Hit Sphere" />
     <MESSAGE value="Implemented code for Material" />
     <MESSAGE value="Implemented Fuzzyness??" />
-    <option name="LAST_COMMIT_MESSAGE" value="Implemented Fuzzyness??" />
+    <MESSAGE value="Nice GUI stuff" />
+    <option name="LAST_COMMIT_MESSAGE" value="Nice GUI stuff" />
   </component>
 </project>

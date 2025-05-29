@@ -218,7 +218,7 @@ impl DebugGui {
         ui.heading("Statistic");
         ui.label("Hold `LeftAlt` down to pause statistic");
         ui.add_space(8.0);
-        ui.label(format!("Current State: {:?}", self.render_msg));
+        ui.label(format!("Last Error: {:?}", self.render_msg));
         ui.label(format!("Total Render Duration: {:?}", self.total_render_ms));
         ui.label(format!(
             "Total Cuda Render Duration: {:?}",
@@ -228,13 +228,13 @@ impl DebugGui {
         ui.heading("Camera");
         let mut camera = camera.write().unwrap();
         ui.add(
-            egui::Slider::new(&mut camera.vfov, 10.0..=100.0)
+            egui::Slider::new(&mut camera.vfov, 0.1..=100.0)
                 .text("FOV")
-                .logarithmic(true),
+                .logarithmic(true)
                 .clamp_to_range(true),
         );
         ui.add(
-            egui::Slider::new(&mut camera.lookfrom[0], -10.0..=10.0)
+            egui::Slider::new(&mut camera.lookfrom[0], -100.0..=100.0)
                 .text("Camera X")
                 .clamp_to_range(true),
         );
@@ -244,8 +244,23 @@ impl DebugGui {
                 .clamp_to_range(true),
         );
         ui.add(
-            egui::Slider::new(&mut camera.lookfrom[2], -10.0..=10.0)
+            egui::Slider::new(&mut camera.lookfrom[2], -100.0..=100.0)
                 .text("Camera Z")
+                .clamp_to_range(true),
+        );
+        ui.add(
+            egui::Slider::new(&mut camera.lookat[0], -100.0..=100.0)
+                .text("Destination X")
+                .clamp_to_range(true),
+        );
+        ui.add(
+            egui::Slider::new(&mut camera.lookat[1], -10.0..=10.0)
+                .text("Destination Y")
+                .clamp_to_range(true),
+        );
+        ui.add(
+            egui::Slider::new(&mut camera.lookat[2], -100.0..=100.0)
+                .text("Destination Z")
                 .clamp_to_range(true),
         );
 
@@ -280,6 +295,17 @@ impl DebugGui {
         if ui.button("Compile PTX Again?").clicked() {
             self.compile_ptx = true;
         }
+        ui.heading("Presets");
+        ui.separator();
+        if ui.button("Go To Reflection Test").clicked() {
+            camera.lookat = [0.0, 0.0, -70.0];
+            camera.lookfrom = [0.0, 0.0, -85.0];
+        }
+        if ui.button("Go To Starting Test").clicked() {
+            camera.lookat = [0.0, 0.0, -1.0];
+            camera.lookfrom = [-2.0, 2.0, 1.0];
+        }
+
         ui.add_space(8.0);
         ui.vertical_centered(|ui| {
             egui::reset_button(ui, self);
